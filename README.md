@@ -149,3 +149,9 @@ src/SshKa.App/
 - Drag-and-drop файлов из Проводника Windows в панель файлов.
 - Автовход по Telnet, раскрывающееся дерево каталогов, управление известными хостами из интерфейса.
 - Автоматические тесты (разбор Telnet и потока подсветки, импортёры, хранилище).
+
+## Сайт и выпуск
+
+Лендинг лежит в `site/` и опубликован на https://sshka.slona.me (сервер `msk-1-vm-fwwk`, nginx, каталог `/var/www/sshka`).
+Выпуск: `dotnet publish src/SshKa.App -c Release -r win-x64 --self-contained`, из результата убрать `*.pdb`, запаковать в `SSH-ka-win-x64.zip`
+и положить в `/var/www/sshka/download/`; в `site/index.html` обновить версию, размер и SHA-256.

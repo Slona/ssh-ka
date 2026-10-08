@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SSH-ka — бесплатный SSH и Telnet клиент</title>
+<meta name="description" content="SSH-ka: бесплатный SSH/Telnet-клиент для Windows. Сессии с папками, цветной терминал, проводник SFTP/SCP, панель состояния сервера.">
+<link rel="icon" href="/favicon.ico">
+<style>
+  :root {
+    --bg: #f4f4f5; --card: #ffffff; --text: #1d2330; --muted: #5d6677; --line: #d9dce2;
+    --accent: #3b78c2; --accent-dark: #2d5f9f; --term: #0c0c0c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #14171d; --card: #1c2028; --text: #e8ebf0; --muted: #98a1b2; --line: #2d333f; --accent: #5b97e0; --accent-dark: #7aaeee; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 "Segoe UI", system-ui, -apple-system, "Noto Sans", sans-serif; }
+  a { color: var(--accent); }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 20px; }
+  .brand img { width: 36px; height: 36px; }
+  .lang button { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 6px; padding: 4px 10px; cursor: pointer; font: inherit; }
+  .lang button.on { color: var(--text); border-color: var(--accent); }
+  .hero { display: grid; grid-template-columns: 1.1fr 1fr; gap: 36px; align-items: center; padding: 28px 0 40px; }
+  .hero h1 { font-size: 40px; line-height: 1.15; margin: 0 0 14px; }
+  .hero p { color: var(--muted); font-size: 18px; margin: 0 0 24px; }
+  .btn { display: inline-block; background: var(--accent); color: #fff; text-decoration: none; padding: 13px 24px; border-radius: 8px; font-weight: 600; font-size: 17px; }
+  .btn:hover { background: var(--accent-dark); }
+  .meta { margin-top: 12px; color: var(--muted); font-size: 14px; }
+  .meta code { font-size: 12px; word-break: break-all; }
+  .shot { width: 100%; border-radius: 10px; border: 1px solid var(--line); box-shadow: 0 10px 30px rgba(0,0,0,.18); display: block; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; padding: 10px 0 40px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; }
+  .card h3 { margin: 0 0 6px; font-size: 17px; }
+  .card p { margin: 0; color: var(--muted); font-size: 15px; }
+  h2 { font-size: 26px; margin: 8px 0 16px; }
+  .shots { display: grid; gap: 22px; padding-bottom: 36px; }
+  figure { margin: 0; }
+  figcaption { color: var(--muted); font-size: 14px; margin-top: 8px; }
+  .note { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 8px; padding: 14px 18px; color: var(--muted); font-size: 15px; margin-bottom: 40px; }
+  footer { border-top: 1px solid var(--line); padding: 22px 0 40px; color: var(--muted); font-size: 14px; }
+  [data-l] { display: none; }
+  html[lang="ru"] [data-l="ru"], html[lang="en"] [data-l="en"] { display: revert; }
+  @media (max-width: 800px) { .hero { grid-template-columns: 1fr; } .hero h1 { font-size: 32px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><img src="/img/icon.png" alt=""> SSH-ka</div>
+    <div class="lang"><button id="ru">RU</button> <button id="en">EN</button></div>
+  </header>
+
+  <section class="hero">
+    <div>
+      <h1 data-l="ru">SSH и Telnet клиент для Windows. Бесплатный, без лишнего.</h1>
+      <h1 data-l="en">A free SSH and Telnet client for Windows. Just what you need.</h1>
+      <p data-l="ru">Сессии с папками, цветной терминал, проводник с SFTP и SCP, панель состояния сервера. Всё в одном окне и без регистрации.</p>
+      <p data-l="en">Session folders, a colourful terminal, an SFTP/SCP file explorer and a server status bar. All in one window, no sign-up.</p>
+      <a class="btn" href="/download/SSH-ka-win-x64.zip">
+        <span data-l="ru">Скачать для Windows</span><span data-l="en">Download for Windows</span>
+      </a>
+      <div class="meta">
+        <span data-l="ru">Версия <span class="ver">0.1.0</span>, Windows 10/11 x64, архив <span class="size">49.3 MB</span>. Распакуйте и запустите <b>SshKa.App.exe</b>, устанавливать ничего не нужно.</span>
+        <span data-l="en">Version <span class="ver">0.1.0</span>, Windows 10/11 x64, archive <span class="size">49.3 MB</span>. Unzip and run <b>SshKa.App.exe</b>, nothing to install.</span>
+        <br>SHA-256: <code>0ac61c13075bc7281c34b85368e52302afc9eff711b94049a6ec91ad8164ee8c</code>
+      </div>
+    </div>
+    <img class="shot" src="/img/sessions.png" alt="SSH-ka">
+  </section>
+
+  <div class="grid">
+    <div class="card"><h3 data-l="ru">Сессии и папки</h3><h3 data-l="en">Sessions and folders</h3>
+      <p data-l="ru">Сколько угодно сессий, папки любой вложенности, перетаскивание мышью. Вход по паролю или по ключу. Импорт из MobaXterm, PuTTY и ~/.ssh/config.</p>
+      <p data-l="en">Unlimited sessions, nested folders, drag and drop. Password or key login. Import from MobaXterm, PuTTY and ~/.ssh/config.</p></div>
+    <div class="card"><h3 data-l="ru">Пароли под замком</h3><h3 data-l="en">Passwords locked away</h3>
+      <p data-l="ru">Всё хранится в одном файле, зашифрованном мастер-паролем (Argon2id и AES-256-GCM). Ключи серверов проверяются как в OpenSSH.</p>
+      <p data-l="en">Everything lives in one file encrypted with a master password (Argon2id and AES-256-GCM). Server keys are verified like in OpenSSH.</p></div>
+    <div class="card"><h3 data-l="ru">Цветной терминал</h3><h3 data-l="en">Colourful terminal</h3>
+      <p data-l="ru">Подсветка ошибок, предупреждений, адресов и дат по вашим правилам. Подсветка кода в vim и nano. Выделил мышью — уже в буфере, правая кнопка вставляет.</p>
+      <p data-l="en">Highlighting of errors, warnings, addresses and dates by your own rules. Code highlighting in vim and nano. Select to copy, right-click to paste.</p></div>
+    <div class="card"><h3 data-l="ru">Проводник SFTP / SCP</h3><h3 data-l="en">SFTP / SCP explorer</h3>
+      <p data-l="ru">Файлы сервера рядом с терминалом, панель следует за каталогом шелла. Загрузка, скачивание, права доступа, вопрос при совпадении имён.</p>
+      <p data-l="en">Server files next to the terminal; the panel follows the shell's directory. Upload, download, permissions, a prompt on name conflicts.</p></div>
+    <div class="card"><h3 data-l="ru">Состояние сервера</h3><h3 data-l="en">Server status</h3>
+      <p data-l="ru">CPU, память, скорость сети, аптайм и заполнение дисков внизу вкладки. На сервер ничего не устанавливается.</p>
+      <p data-l="en">CPU, memory, network speed, uptime and disk usage at the bottom of the tab. Nothing is installed on the server.</p></div>
+    <div class="card"><h3 data-l="ru">Несколько сессий сразу</h3><h3 data-l="en">Several sessions at once</h3>
+      <p data-l="ru">Окно можно разделить на две или четыре области, в каждой своя сессия. Интерфейс на русском и английском.</p>
+      <p data-l="en">Split the window into two or four panes, each with its own session. The interface is available in Russian and English.</p></div>
+  </div>
+
+  <h2 data-l="ru">Как это выглядит</h2><h2 data-l="en">What it looks like</h2>
+  <div class="shots">
+    <figure><img class="shot" src="/img/explorer.png" alt="">
+      <figcaption data-l="ru">Проводник: размер, дата, владелец, меню по правой кнопке, права доступа.</figcaption>
+      <figcaption data-l="en">Explorer: size, date, owner, context menu, permissions.</figcaption></figure>
+    <figure><img class="shot" src="/img/split.png" alt="">
+      <figcaption data-l="ru">Окно разделено на области.</figcaption>
+      <figcaption data-l="en">The window split into panes.</figcaption></figure>
+  </div>
+
+  <div class="note">
+    <span data-l="ru">Программа пока без цифровой подписи, поэтому Windows SmartScreen может показать предупреждение: нажмите «Подробнее» и «Выполнить в любом случае». Контрольную сумму можно сверить с указанной выше.</span>
+    <span data-l="en">The program is not code-signed yet, so Windows SmartScreen may show a warning: click “More info” and “Run anyway”. You can check the checksum against the one above.</span>
+  </div>
+
+  <footer>SSH-ka · sshka.slona.me</footer>
+</div>
+<script>
+  (function () {
+    var saved = null;
+    try { saved = localStorage.getItem('lang'); } catch (e) {}
+    var lang = saved || ((navigator.language || 'ru').toLowerCase().indexOf('ru') === 0 ? 'ru' : 'en');
+    function set(l) {
+      document.documentElement.lang = l;
+      document.title = l === 'ru' ? 'SSH-ka — бесплатный SSH и Telnet клиент' : 'SSH-ka — a free SSH and Telnet client';
+      document.getElementById('ru').className = l === 'ru' ? 'on' : '';
+      document.getElementById('en').className = l === 'en' ? 'on' : '';
+      try { localStorage.setItem('lang', l); } catch (e) {}
+    }
+    document.getElementById('ru').onclick = function () { set('ru'); };
+    document.getElementById('en').onclick = function () { set('en'); };
+    set(lang);
+  })();
+</script>
+</body>
+</html>
