@@ -1,0 +1,55 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="SshKa.App.Views.SessionEditDialog"
+        Title="Сессия"
+        Width="460" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" CanResize="False">
+
+    <StackPanel Margin="16" Spacing="12">
+        <Grid ColumnDefinitions="110,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+              RowSpacing="8" ColumnSpacing="8">
+            <TextBlock Grid.Row="0" Text="Имя" VerticalAlignment="Center" />
+            <TextBox Grid.Row="0" Grid.Column="1" x:Name="NameBox" />
+
+            <TextBlock Grid.Row="1" Text="Протокол" VerticalAlignment="Center" />
+            <ComboBox Grid.Row="1" Grid.Column="1" x:Name="ProtoBox" SelectedIndex="0" SelectionChanged="OnProtocolChanged">
+                <ComboBoxItem Content="SSH" />
+                <ComboBoxItem Content="Telnet" />
+            </ComboBox>
+
+            <TextBlock Grid.Row="2" Text="Хост" VerticalAlignment="Center" />
+            <TextBox Grid.Row="2" Grid.Column="1" x:Name="HostBox" />
+
+            <TextBlock Grid.Row="3" Text="Порт" VerticalAlignment="Center" />
+            <TextBox Grid.Row="3" Grid.Column="1" x:Name="PortBox" Width="100" HorizontalAlignment="Left" />
+
+            <TextBlock Grid.Row="4" Text="Логин" VerticalAlignment="Center" />
+            <TextBox Grid.Row="4" Grid.Column="1" x:Name="UserBox" />
+
+            <TextBlock Grid.Row="5" Text="Вход" VerticalAlignment="Center" x:Name="AuthLabel" />
+            <ComboBox Grid.Row="5" Grid.Column="1" x:Name="AuthBox" SelectedIndex="0" SelectionChanged="OnAuthChanged">
+                <ComboBoxItem Content="Пароль" />
+                <ComboBoxItem Content="Ключ" />
+            </ComboBox>
+
+            <TextBlock Grid.Row="6" Text="Файл ключа" VerticalAlignment="Center" x:Name="KeyLabel" />
+            <Grid Grid.Row="6" Grid.Column="1" ColumnDefinitions="*,Auto" ColumnSpacing="6" x:Name="KeyRow">
+                <TextBox x:Name="KeyBox" />
+                <Button Grid.Column="1" Content="…" Click="OnBrowseKey" />
+            </Grid>
+
+            <TextBlock Grid.Row="7" Text="Пароль" VerticalAlignment="Center" x:Name="PassLabel" />
+            <TextBox Grid.Row="7" Grid.Column="1" x:Name="PassBox" PasswordChar="*" />
+
+            <TextBlock Grid.Row="8" Text="Пассфраза ключа" VerticalAlignment="Center" x:Name="PhraseLabel" />
+            <TextBox Grid.Row="8" Grid.Column="1" x:Name="PhraseBox" PasswordChar="*" />
+        </Grid>
+
+        <TextBlock x:Name="ErrorText" Foreground="IndianRed" />
+
+        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+            <Button Content="Сохранить" IsDefault="True" Click="OnOk" />
+            <Button Content="Отмена" IsCancel="True" Click="OnCancel" />
+        </StackPanel>
+    </StackPanel>
+</Window>

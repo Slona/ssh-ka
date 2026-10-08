@@ -1,0 +1,153 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:m="using:SshKa.App.Models"
+        x:Class="SshKa.App.Views.MainWindow"
+        Icon="avares://SshKa.App/Assets/sshka.ico"
+        Width="1250" Height="760"
+        Title="SSH-ka">
+
+    <DockPanel>
+        <!-- пустая строка в самом низу окна, для красоты -->
+        <Border DockPanel.Dock="Bottom" Height="8" BorderThickness="0,1,0,0"
+                BorderBrush="{DynamicResource LineBrush}" Background="{DynamicResource AppBackground}" />
+
+        <!-- верхняя панель: крупные кнопки с круглой иконкой и подписью -->
+        <Border DockPanel.Dock="Top" Padding="6,4" BorderThickness="0,0,0,1"
+                BorderBrush="{DynamicResource LineBrush}" Background="{DynamicResource AppBackground}">
+            <Grid ColumnDefinitions="Auto,*">
+                <StackPanel Orientation="Horizontal" Spacing="2">
+                    <Button Classes="tool" Click="OnNewSession" ToolTip.Tip="Создать новую сессию">
+                        <StackPanel>
+                            <Grid HorizontalAlignment="Center">
+                                <Ellipse Fill="#3E9B4F" />
+                                <PathIcon Data="{DynamicResource IconPlus}" />
+                            </Grid>
+                            <TextBlock Text="Сессия" />
+                        </StackPanel>
+                    </Button>
+                    <Button Classes="tool" Click="OnSettings" ToolTip.Tip="Настройки программы">
+                        <StackPanel>
+                            <Grid HorizontalAlignment="Center">
+                                <Ellipse Fill="#5F7A99" />
+                                <PathIcon Data="{DynamicResource IconGear}" />
+                            </Grid>
+                            <TextBlock Text="Настройки" />
+                        </StackPanel>
+                    </Button>
+                    <Button Classes="tool" x:Name="SplitButton" ToolTip.Tip="Показать несколько сессий в окне">
+                        <StackPanel>
+                            <Grid HorizontalAlignment="Center">
+                                <Ellipse Fill="#3B78C2" />
+                                <PathIcon Data="{DynamicResource IconSplit}" />
+                            </Grid>
+                            <TextBlock Text="Разделить" />
+                        </StackPanel>
+                    </Button>
+                    <Button Classes="tool" Click="OnAbout" ToolTip.Tip="О программе">
+                        <StackPanel>
+                            <Grid HorizontalAlignment="Center">
+                                <Ellipse Fill="#2E9AA8" />
+                                <PathIcon Data="{DynamicResource IconInfo}" />
+                            </Grid>
+                            <TextBlock Text="О программе" />
+                        </StackPanel>
+                    </Button>
+                    <Button Classes="tool" Click="OnExit" ToolTip.Tip="Закрыть приложение">
+                        <StackPanel>
+                            <Grid HorizontalAlignment="Center">
+                                <Ellipse Fill="#C0504D" />
+                                <PathIcon Data="{DynamicResource IconPower}" />
+                            </Grid>
+                            <TextBlock Text="Выход" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+                <TextBlock Grid.Column="1" x:Name="StatusText" VerticalAlignment="Center" Margin="12,0,0,0" Opacity="0.8" />
+            </Grid>
+        </Border>
+
+        <Grid x:Name="BodyGrid">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="400" MinWidth="220" MaxWidth="700" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- левая панель: одна, с переключателем «Сессии / Проводник» снизу -->
+            <DockPanel x:Name="LeftPanel" Grid.Column="0" Background="{DynamicResource PanelBackground}">
+                <Border x:Name="BarBorder" DockPanel.Dock="Bottom" BorderThickness="0,1,0,0"
+                        BorderBrush="{DynamicResource LineBrush}" Background="{DynamicResource AppBackground}">
+                    <Grid x:Name="BarGrid" ColumnDefinitions="*,Auto">
+                        <StackPanel x:Name="BarLeft" Orientation="Horizontal">
+                            <ToggleButton x:Name="SessionsMode" Classes="mode" IsChecked="True" Click="OnSessionsMode"
+                                          ToolTip.Tip="Сессии">
+                                <PathIcon Data="{DynamicResource IconStar}" Foreground="#E0A100" />
+                            </ToggleButton>
+                            <ToggleButton x:Name="ExplorerMode" Classes="mode" Click="OnExplorerMode"
+                                          ToolTip.Tip="Проводник: файлы на сервере">
+                                <PathIcon Data="{DynamicResource IconFolderOpen}" Foreground="#C8921A" />
+                            </ToggleButton>
+                        </StackPanel>
+                        <StackPanel x:Name="BarRight" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button x:Name="ImportButton" Classes="mode" ToolTip.Tip="Импорт сессий">
+                                <PathIcon Data="{DynamicResource IconDownload}" Foreground="#2F6DB5" />
+                            </Button>
+                            <ToggleButton x:Name="MonitorMode" Classes="mode" IsChecked="True" Click="OnMonitorToggled"
+                                          ToolTip.Tip="Мониторинг сервера: загрузка, память, сеть, диски">
+                                <PathIcon Data="{DynamicResource IconChart}" Foreground="#2E8B3E" />
+                            </ToggleButton>
+                            <Button x:Name="CollapseButton" Classes="mode" Click="OnCollapse"
+                                    ToolTip.Tip="Свернуть или развернуть панель">
+                                <PathIcon x:Name="CollapseIcon" Data="{DynamicResource IconChevronsLeft}" Foreground="#4A4A4A" />
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Grid x:Name="LeftContent">
+                    <TreeView x:Name="Tree" DoubleTapped="OnTreeDoubleTapped">
+                        <TreeView.ItemTemplate>
+                            <TreeDataTemplate DataType="m:SessionItem" ItemsSource="{Binding Children}">
+                                <Border Name="RowBorder" Classes="row"
+                                        Classes.connected="{Binding IsConnected}"
+                                        Classes.dropBefore="{Binding IsDropBefore}"
+                                        Classes.dropAfter="{Binding IsDropAfter}"
+                                        Classes.dropInto="{Binding IsDropInto}">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <Path Classes="folder" IsVisible="{Binding IsFolder}" />
+                                        <PathIcon Data="{DynamicResource IconMonitor}" Width="13" Height="13" Foreground="#4F5F70"
+                                                  IsVisible="{Binding !IsFolder}" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Border>
+                            </TreeDataTemplate>
+                        </TreeView.ItemTemplate>
+                        <TreeView.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Подключиться" Click="OnConnectSelected" />
+                                <Separator />
+                                <MenuItem Header="Новая сессия" Click="OnNewSession" />
+                                <MenuItem Header="Новая папка" Click="OnNewFolder" />
+                                <MenuItem Header="Локальный терминал" Click="OnLocal" />
+                                <Separator />
+                                <MenuItem Header="Изменить" Click="OnEdit" />
+                                <MenuItem Header="Дублировать" Click="OnDuplicate" />
+                                <MenuItem Header="Удалить" Click="OnDelete" />
+                            </ContextMenu>
+                        </TreeView.ContextMenu>
+                    </TreeView>
+
+                    <ContentControl x:Name="ExplorerHost" IsVisible="False" />
+                </Grid>
+            </DockPanel>
+
+            <GridSplitter x:Name="LeftSplitter" Grid.Column="1" Classes="vsplit" />
+
+            <!-- справа: полоса вкладок и под ней одна, две или четыре области с терминалами -->
+            <Grid Grid.Column="2" RowDefinitions="Auto,*">
+                <TabControl x:Name="Tabs" SelectionChanged="OnTabChanged" />
+                <Grid Grid.Row="1" x:Name="PaneGrid" />
+            </Grid>
+        </Grid>
+    </DockPanel>
+</Window>

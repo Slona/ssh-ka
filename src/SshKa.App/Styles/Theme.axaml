@@ -1,0 +1,296 @@
+﻿<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ===== Общее: шрифт, размер, фон ===== -->
+    <Style Selector="Window">
+        <Setter Property="FontFamily" Value="{DynamicResource UiFont}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Background" Value="{DynamicResource AppBackground}" />
+    </Style>
+
+    <!-- Компактные элементы: плотнее, чем в стандартной теме -->
+    <Style Selector="Button">
+        <Setter Property="MinHeight" Value="24" />
+        <Setter Property="Padding" Value="10,3" />
+    </Style>
+    <Style Selector="TextBox">
+        <Setter Property="MinHeight" Value="24" />
+        <Setter Property="Padding" Value="6,3" />
+    </Style>
+    <Style Selector="ComboBox">
+        <Setter Property="MinHeight" Value="24" />
+        <Setter Property="Padding" Value="6,2" />
+    </Style>
+    <Style Selector="CheckBox">
+        <Setter Property="MinHeight" Value="20" />
+    </Style>
+
+    <!-- ===== Кнопки-иконки ===== -->
+    <Style Selector="Button.icon">
+        <Setter Property="Width" Value="26" />
+        <Setter Property="Height" Value="26" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="CornerRadius" Value="3" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="ToolTip.ShowDelay" Value="500" />
+    </Style>
+    <Style Selector="Button.icon:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="#DADADA" />
+    </Style>
+    <Style Selector="Button.icon:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="#C8C8C8" />
+    </Style>
+    <Style Selector="Button.icon:disabled">
+        <Setter Property="Opacity" Value="0.35" />
+    </Style>
+    <Style Selector="Button.icon PathIcon">
+        <Setter Property="Width" Value="15" />
+        <Setter Property="Height" Value="15" />
+    </Style>
+
+    <!-- ===== Иконки папок и файлов: жёлтая папка с чёрной обводкой ===== -->
+    <Style Selector="Path.folder">
+        <Setter Property="Data" Value="{DynamicResource IconFolder}" />
+        <Setter Property="Fill" Value="#F6D365" />
+        <Setter Property="Stroke" Value="#262626" />
+        <Setter Property="StrokeThickness" Value="0.9" />
+        <Setter Property="Stretch" Value="Uniform" />
+        <Setter Property="Width" Value="14" />
+        <Setter Property="Height" Value="12" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Path.file">
+        <Setter Property="Data" Value="{DynamicResource IconFile}" />
+        <Setter Property="Fill" Value="#FFFFFF" />
+        <Setter Property="Stroke" Value="#707070" />
+        <Setter Property="StrokeThickness" Value="0.9" />
+        <Setter Property="Stretch" Value="Uniform" />
+        <Setter Property="Width" Value="11" />
+        <Setter Property="Height" Value="13" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- ===== Вкладки: аккуратные, в духе MobaXterm ===== -->
+    <Style Selector="TabControl">
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Background" Value="{DynamicResource AppBackground}" />
+    </Style>
+    <Style Selector="TabItem">
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="8,3,4,3" />
+        <Setter Property="Margin" Value="0,0,2,0" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="#444444" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="PART_LayoutRoot"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{DynamicResource LineBrush}"
+                        BorderThickness="1,1,1,0"
+                        CornerRadius="4,4,0,0"
+                        Padding="{TemplateBinding Padding}">
+                    <ContentPresenter Name="PART_ContentPresenter"
+                                      Content="{TemplateBinding Header}"
+                                      ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                      VerticalAlignment="Center" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="TabItem /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="#E3E3E3" />
+    </Style>
+    <Style Selector="TabItem:pointerover /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="#EDEDED" />
+    </Style>
+    <Style Selector="TabItem:selected /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="#FFFFFF" />
+        <Setter Property="BorderBrush" Value="#9E9E9E" />
+    </Style>
+    <Style Selector="TabItem:selected">
+        <Setter Property="Foreground" Value="#111111" />
+    </Style>
+    <!-- кнопка закрытия на вкладке -->
+    <Style Selector="TabItem Button.close">
+        <Setter Property="Width" Value="16" />
+        <Setter Property="Height" Value="16" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="CornerRadius" Value="3" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TabItem Button.close:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="#E0A8A8" />
+    </Style>
+    <Style Selector="TabItem Button.close PathIcon">
+        <Setter Property="Width" Value="8" />
+        <Setter Property="Height" Value="8" />
+        <Setter Property="Foreground" Value="#555555" />
+    </Style>
+
+    <!-- ===== Крупные кнопки верхней панели: круглая иконка и подпись ===== -->
+    <Style Selector="Button.tool">
+        <Setter Property="Padding" Value="8,4,8,3" />
+        <Setter Property="MinWidth" Value="68" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="ToolTip.ShowDelay" Value="500" />
+    </Style>
+    <Style Selector="Button.tool:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="#E2E2E2" />
+    </Style>
+    <Style Selector="Button.tool:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="#D2D2D2" />
+    </Style>
+    <Style Selector="Button.tool Ellipse">
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Height" Value="32" />
+    </Style>
+    <Style Selector="Button.tool PathIcon">
+        <Setter Property="Width" Value="17" />
+        <Setter Property="Height" Value="17" />
+        <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="Button.tool TextBlock">
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,3,0,0" />
+    </Style>
+
+    <!-- ===== Кнопки нижней строки левой панели ===== -->
+    <Style Selector="Button.mode.flat">
+        <Setter Property="Width" Value="34" />
+    </Style>
+
+    <!-- ===== Области терминалов при разделении окна ===== -->
+    <Style Selector="Border.pane">
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="2" />
+    </Style>
+    <Style Selector="Border.pane.focused">
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+    </Style>
+
+    <!-- ===== Дерево сессий ===== -->
+    <Style Selector="TreeView">
+        <Setter Property="Background" Value="{DynamicResource PanelBackground}" />
+        <Setter Property="Padding" Value="0" />
+    </Style>
+    <Style Selector="TreeViewItem">
+        <Setter Property="MinHeight" Value="22" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="IsExpanded" Value="{ReflectionBinding IsExpanded, Mode=TwoWay}" />
+    </Style>
+    <Style Selector="TreeViewItem /template/ ContentPresenter#PART_HeaderPresenter">
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Padding" Value="2,0" />
+        <Setter Property="MinHeight" Value="22" />
+    </Style>
+
+    <!-- строка сессии: подключённая подсвечивается зелёным, цель перетаскивания — синим -->
+    <Style Selector="Border.row">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0,2" />
+        <Setter Property="Padding" Value="2,1" />
+    </Style>
+    <Style Selector="Border.row.connected">
+        <Setter Property="Background" Value="{DynamicResource ConnectedBrush}" />
+    </Style>
+    <Style Selector="Border.row.dropBefore">
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+        <Setter Property="BorderThickness" Value="0,2,0,0" />
+    </Style>
+    <Style Selector="Border.row.dropAfter">
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+        <Setter Property="BorderThickness" Value="0,0,0,2" />
+    </Style>
+    <Style Selector="Border.row.dropInto">
+        <Setter Property="Background" Value="#CFE0F5" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <!-- ===== Разделитель между панелями ===== -->
+    <Style Selector="GridSplitter.vsplit">
+        <Setter Property="Width" Value="5" />
+        <Setter Property="Background" Value="#D6D6D6" />
+    </Style>
+    <Style Selector="GridSplitter.vsplit:pointerover">
+        <Setter Property="Background" Value="#B0B0B0" />
+    </Style>
+
+    <!-- ===== Переключатель левой панели ===== -->
+    <Style Selector="Button.mode">
+        <Setter Property="Width" Value="44" />
+        <Setter Property="Height" Value="30" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="CornerRadius" Value="0" />
+        <Setter Property="BorderThickness" Value="0,2,0,0" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="ToolTip.ShowDelay" Value="500" />
+    </Style>
+    <Style Selector="Button.mode:pointerover /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.mode:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="#E4E4E4" />
+    </Style>
+    <Style Selector="ToggleButton.mode:checked /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.mode:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.mode:checked:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="#FFFFFF" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.mode:unchecked /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.mode:unchecked:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ToggleButton.mode:unchecked:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="#E4E4E4" />
+    </Style>
+    <Style Selector="Button.mode PathIcon">
+        <Setter Property="Width" Value="16" />
+        <Setter Property="Height" Value="16" />
+    </Style>
+
+    <!-- ===== Таблица файлов ===== -->
+    <Style Selector="DataGrid">
+        <Setter Property="Background" Value="{DynamicResource PanelBackground}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="DataGridColumnHeader">
+        <Setter Property="MinHeight" Value="22" />
+        <Setter Property="Padding" Value="4,0" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="DataGridCell">
+        <Setter Property="MinHeight" Value="20" />
+    </Style>
+    <Style Selector="DataGridCell TextBlock">
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="4,0" />
+    </Style>
+    <Style Selector="DataGridCell.right TextBlock">
+        <Setter Property="HorizontalAlignment" Value="Right" />
+    </Style>
+
+    <!-- ===== Подсказки ===== -->
+    <Style Selector="ToolTip">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Padding" Value="6,3" />
+    </Style>
+</Styles>

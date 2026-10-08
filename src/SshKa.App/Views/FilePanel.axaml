@@ -1,0 +1,135 @@
+﻿<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:f="using:SshKa.App.Files"
+             x:Class="SshKa.App.Views.FilePanel">
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto" Background="{DynamicResource PanelBackground}">
+
+        <!-- панель инструментов: иконки, подсказки появляются с задержкой -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="4,4,4,2" Spacing="1">
+            <Button Classes="icon" Click="OnUp" ToolTip.Tip="На уровень вверх">
+                <PathIcon Data="{DynamicResource IconArrowUp}" Foreground="#4A4A4A" />
+            </Button>
+            <Button Classes="icon" Click="OnRefresh" ToolTip.Tip="Обновить">
+                <PathIcon Data="{DynamicResource IconRefresh}" Foreground="#2E8B3E" />
+            </Button>
+            <Border Width="1" Height="16" Margin="4,0" Background="{DynamicResource LineBrush}" />
+            <Button Classes="icon" Click="OnDownload" ToolTip.Tip="Скачать выбранное">
+                <PathIcon Data="{DynamicResource IconDownload}" Foreground="#2F6DB5" />
+            </Button>
+            <Button Classes="icon" Click="OnUploadFiles" ToolTip.Tip="Загрузить файлы на сервер">
+                <PathIcon Data="{DynamicResource IconUpload}" Foreground="#2E8B3E" />
+            </Button>
+            <Button Classes="icon" Click="OnUploadFolder" ToolTip.Tip="Загрузить папку на сервер">
+                <PathIcon Data="{DynamicResource IconUploadFolder}" Foreground="#2E8B3E" />
+            </Button>
+            <Border Width="1" Height="16" Margin="4,0" Background="{DynamicResource LineBrush}" />
+            <Button Classes="icon" Click="OnNewFolder" ToolTip.Tip="Создать папку">
+                <PathIcon Data="{DynamicResource IconNewFolder}" Foreground="#C8921A" />
+            </Button>
+            <Button Classes="icon" Click="OnRename" ToolTip.Tip="Переименовать">
+                <PathIcon Data="{DynamicResource IconRename}" Foreground="#4A4A4A" />
+            </Button>
+            <Button Classes="icon" Click="OnPermissions" ToolTip.Tip="Изменить права доступа">
+                <PathIcon Data="{DynamicResource IconLock}" Foreground="#4A4A4A" />
+            </Button>
+            <Button Classes="icon" Click="OnDelete" ToolTip.Tip="Удалить">
+                <PathIcon Data="{DynamicResource IconDelete}" Foreground="#C0392B" />
+            </Button>
+        </StackPanel>
+
+        <TextBox Grid.Row="1" x:Name="PathBox" Margin="4,2,4,4" KeyDown="OnPathKeyDown" />
+
+        <!-- строка «..» всегда сверху, как в классических файловых менеджерах -->
+        <Border Grid.Row="2" x:Name="UpRow" Margin="4,0,4,0" Padding="6,2" Background="Transparent"
+                BorderBrush="{DynamicResource LineBrush}" BorderThickness="1,1,1,0"
+                DoubleTapped="OnUpRowDoubleTapped" ToolTip.Tip="Двойной щелчок: на уровень вверх">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+                <Grid Width="14" Height="14">
+                    <Path Classes="folder" />
+                    <Path Data="{DynamicResource IconArrowUp}" Fill="#262626" Stretch="Uniform" Width="7" Height="7"
+                          HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,2,0,0" />
+                </Grid>
+                <TextBlock Text=".." VerticalAlignment="Center" />
+            </StackPanel>
+        </Border>
+
+        <DataGrid Grid.Row="3" x:Name="Grid" x:DataType="f:RemoteEntry" Margin="4,0,4,0"
+                  AutoGenerateColumns="False" IsReadOnly="True"
+                  SelectionMode="Extended" GridLinesVisibility="None"
+                  HeadersVisibility="Column" RowHeight="20"
+                  CanUserResizeColumns="True" CanUserSortColumns="True" CanUserReorderColumns="False"
+                  DoubleTapped="OnGridDoubleTapped" Sorting="OnGridSorting"
+                  HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                  ScrollViewer.AllowAutoHide="False">
+            <DataGrid.Columns>
+                <DataGridTemplateColumn Header="Имя ▲" Width="175" MinWidth="60" Tag="name">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate x:DataType="f:RemoteEntry">
+                            <StackPanel Orientation="Horizontal" Spacing="6" Margin="6,0,0,0" VerticalAlignment="Center">
+                                <Path Classes="folder" IsVisible="{Binding IsDirectory}" />
+                                <Path Classes="file" IsVisible="{Binding !IsDirectory}" />
+                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Размер" Binding="{Binding SizeText}" Width="70" MinWidth="40" Tag="size">
+                    <DataGridTextColumn.CellStyleClasses>
+                        <x:String>right</x:String>
+                    </DataGridTextColumn.CellStyleClasses>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Изменён" Binding="{Binding DateText}" Width="110" MinWidth="40" Tag="date" />
+                <DataGridTextColumn Header="Владелец" Binding="{Binding Owner}" Width="100" MinWidth="40" Tag="owner" />
+                <DataGridTextColumn Header="Права" Binding="{Binding PermissionsText}" Width="96" MinWidth="40" Tag="perm" IsVisible="False" />
+            </DataGrid.Columns>
+
+            <DataGrid.ContextMenu>
+                <ContextMenu x:Name="Menu" Opening="OnMenuOpening">
+                    <MenuItem x:Name="MenuDownload" Header="Скачать" Click="OnDownload">
+                        <MenuItem.Icon><PathIcon Data="{DynamicResource IconDownload}" Foreground="#2F6DB5" /></MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="Загрузить файлы сюда…" Click="OnUploadFiles">
+                        <MenuItem.Icon><PathIcon Data="{DynamicResource IconUpload}" Foreground="#2E8B3E" /></MenuItem.Icon>
+                    </MenuItem>
+                    <Separator />
+                    <MenuItem x:Name="MenuRename" Header="Переименовать" Click="OnRename">
+                        <MenuItem.Icon><PathIcon Data="{DynamicResource IconRename}" Foreground="#4A4A4A" /></MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="MenuPermissions" Header="Изменить права…" Click="OnPermissions">
+                        <MenuItem.Icon><PathIcon Data="{DynamicResource IconLock}" Foreground="#4A4A4A" /></MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="MenuDelete" Header="Удалить" Click="OnDelete">
+                        <MenuItem.Icon><PathIcon Data="{DynamicResource IconDelete}" Foreground="#C0392B" /></MenuItem.Icon>
+                    </MenuItem>
+                    <Separator />
+                    <MenuItem Header="Новая папка" Click="OnNewFolder">
+                        <MenuItem.Icon><PathIcon Data="{DynamicResource IconNewFolder}" Foreground="#C8921A" /></MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="Обновить" Click="OnRefresh">
+                        <MenuItem.Icon><PathIcon Data="{DynamicResource IconRefresh}" Foreground="#2E8B3E" /></MenuItem.Icon>
+                    </MenuItem>
+                </ContextMenu>
+            </DataGrid.ContextMenu>
+        </DataGrid>
+
+        <StackPanel Grid.Row="4" Margin="4,4,4,0" Spacing="2">
+            <ProgressBar x:Name="Progress" Height="5" Maximum="100" IsVisible="False" />
+            <TextBlock x:Name="Status" TextWrapping="Wrap" Opacity="0.75" />
+        </StackPanel>
+
+        <!-- нижняя строка: следование за терминалом и выбор протокола -->
+        <Border Grid.Row="5" Margin="0,4,0,0" Padding="6,3" Background="{DynamicResource AppBackground}"
+                BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0">
+            <Grid ColumnDefinitions="*,Auto">
+                <CheckBox x:Name="FollowBox" Content="Следовать за терминалом" IsChecked="True"
+                          IsCheckedChanged="OnFollowChanged" ToolTip.Tip="Переходить в тот каталог, где находится шелл" />
+                <ComboBox Grid.Column="1" x:Name="ModeBox" SelectedIndex="0" SelectionChanged="OnModeChanged"
+                          ToolTip.Tip="Протокол передачи файлов">
+                    <ComboBoxItem Content="SFTP" />
+                    <ComboBoxItem Content="SCP" />
+                </ComboBox>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

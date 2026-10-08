@@ -1,0 +1,51 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="SshKa.App.Views.PermissionsDialog"
+        Title="Изменение прав доступа"
+        Width="440" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" CanResize="False">
+
+    <StackPanel Margin="20,16" Spacing="14">
+        <TextBlock x:Name="Heading" FontWeight="SemiBold" HorizontalAlignment="Center" TextWrapping="Wrap" />
+
+        <Grid ColumnDefinitions="120,*" RowDefinitions="Auto" ColumnSpacing="8">
+            <TextBlock Text="Права:" VerticalAlignment="Center" HorizontalAlignment="Right" />
+            <TextBox Grid.Column="1" x:Name="TextBoxPerms" IsReadOnly="True" Width="140" HorizontalAlignment="Left"
+                     FontFamily="Consolas, DejaVu Sans Mono, monospace" FontWeight="SemiBold" />
+        </Grid>
+
+        <Grid ColumnDefinitions="120,*,*,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8" ColumnSpacing="8">
+            <TextBlock Grid.Column="1" Text="Чтение" Opacity="0.7" />
+            <TextBlock Grid.Column="2" Text="Запись" Opacity="0.7" />
+            <TextBlock Grid.Column="3" Text="Выполнение" Opacity="0.7" />
+
+            <TextBlock Grid.Row="1" Text="Владелец:" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center" />
+            <CheckBox Grid.Row="1" Grid.Column="1" x:Name="UserRead" />
+            <CheckBox Grid.Row="1" Grid.Column="2" x:Name="UserWrite" />
+            <CheckBox Grid.Row="1" Grid.Column="3" x:Name="UserExec" />
+
+            <TextBlock Grid.Row="2" Text="Группа:" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center" />
+            <CheckBox Grid.Row="2" Grid.Column="1" x:Name="GroupRead" />
+            <CheckBox Grid.Row="2" Grid.Column="2" x:Name="GroupWrite" />
+            <CheckBox Grid.Row="2" Grid.Column="3" x:Name="GroupExec" />
+
+            <TextBlock Grid.Row="3" Text="Остальные:" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center" />
+            <CheckBox Grid.Row="3" Grid.Column="1" x:Name="OtherRead" />
+            <CheckBox Grid.Row="3" Grid.Column="2" x:Name="OtherWrite" />
+            <CheckBox Grid.Row="3" Grid.Column="3" x:Name="OtherExec" />
+        </Grid>
+
+        <Grid ColumnDefinitions="120,*" ColumnSpacing="8">
+            <TextBlock Text="Восьмеричный код:" VerticalAlignment="Center" HorizontalAlignment="Right" TextWrapping="Wrap" />
+            <TextBox Grid.Column="1" x:Name="OctalBox" Width="80" HorizontalAlignment="Left" MaxLength="4"
+                     FontFamily="Consolas, DejaVu Sans Mono, monospace" TextChanged="OnOctalChanged" />
+        </Grid>
+
+        <TextBlock x:Name="ErrorText" Foreground="IndianRed" HorizontalAlignment="Center" />
+
+        <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
+            <Button Content="Применить" IsDefault="True" MinWidth="100" HorizontalContentAlignment="Center" Click="OnApply" />
+            <Button Content="Отмена" IsCancel="True" MinWidth="100" HorizontalContentAlignment="Center" Click="OnCancel" />
+        </StackPanel>
+    </StackPanel>
+</Window>
