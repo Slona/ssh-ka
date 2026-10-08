@@ -63,7 +63,7 @@
                   HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
                   ScrollViewer.AllowAutoHide="False">
             <DataGrid.Columns>
-                <DataGridTemplateColumn Header="Имя ▲" Width="175" MinWidth="60" Tag="name">
+                <DataGridTemplateColumn Header="Имя ▲" Width="175" MinWidth="60" Tag="name" SortMemberPath="Name">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate x:DataType="f:RemoteEntry">
                             <StackPanel Orientation="Horizontal" Spacing="6" Margin="6,0,0,0" VerticalAlignment="Center">

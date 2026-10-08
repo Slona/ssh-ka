@@ -271,6 +271,22 @@
         <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}" />
         <Setter Property="FontSize" Value="12" />
     </Style>
+    <!-- полосы прокрутки таблицы занимают своё место, а не лежат поверх строк -->
+    <Style Selector="DataGrid ScrollBar">
+        <Setter Property="AllowAutoHide" Value="False" />
+    </Style>
+    <!-- стрелку сортировки рисуем в тексте заголовка; штатный значок только отнимал место у названия -->
+    <Style Selector="DataGridColumnHeader /template/ Path#SortIcon">
+        <Setter Property="IsVisible" Value="False" />
+        <Setter Property="Margin" Value="0" />
+    </Style>
+    <Style Selector="DataGridColumnHeader /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Margin" Value="0,0,-32,0" />
+    </Style>
+    <!-- строки не заходят под полосы прокрутки -->
+    <Style Selector="DataGrid /template/ DataGridRowsPresenter">
+        <Setter Property="Margin" Value="0,0,16,16" />
+    </Style>
     <Style Selector="DataGridColumnHeader">
         <Setter Property="MinHeight" Value="22" />
         <Setter Property="Padding" Value="4,0" />

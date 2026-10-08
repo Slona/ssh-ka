@@ -179,8 +179,19 @@ public partial class MainWindow : Window
 
     private void OnTabChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (Tabs.SelectedItem is TabItem tab) ShowInPane(tab);
+        if (Tabs.SelectedItem is TabItem tab)
+        {
+            ShowInPane(tab);
+            FocusTerminal(tab);
+        }
         RefreshExplorer();
+    }
+
+    /// <summary>Передаёт клавиатурный фокус терминалу вкладки (иначе клавиши уходят в дерево сессий).</summary>
+    private void FocusTerminal(TabItem tab)
+    {
+        if (TerminalOf(tab.Tag) is { } terminal)
+            Dispatcher.UIThread.Post(() => terminal.Focus(), DispatcherPriority.Input);
     }
 
     /// <summary>В режиме проводника показывает файлы активной вкладки (если это SSH-сессия).</summary>
@@ -815,6 +826,12 @@ public partial class MainWindow : Window
             s.ConnectionCount++;
             counted = true;
             StatusText.Text = "";
+            if (ReferenceEquals(Tabs.SelectedItem, tab))
+            {
+                // после подключения слева сразу файлы сервера, а клавиатура — в терминале
+                if (view is not null) SetLeftMode(explorer: true);
+                FocusTerminal(tab);
+            }
             RefreshExplorer();
         }
         catch (Exception ex)
