@@ -83,6 +83,19 @@ public partial class MainWindow : Window
         var create = !File.Exists(path);
         SessionVault? vault = null;
 
+        // ключ, запомненный на этом компьютере, открывает хранилище без вопросов
+        if (!create && !AppSettings.Current.AskMasterPassword && VaultKeyCache.TryLoad() is { } cached)
+        {
+            try { vault = SessionVault.UnlockWithKey(path, cached); }
+            catch (Exception) { VaultKeyCache.Delete(); } // ключ устарел (например, сменили пароль на другом компьютере)
+        }
+        if (vault is not null)
+        {
+            _vault = vault;
+            Tree.ItemsSource = vault.Root;
+            return;
+        }
+
         var ok = await Dialogs.Unlock(this, create, pw => Task.Run<string?>(() =>
         {
             try
@@ -102,6 +115,8 @@ public partial class MainWindow : Window
 
         _vault = vault;
         Tree.ItemsSource = vault.Root;
+        // после первого ввода пароля запоминаем ключ, чтобы дальше не спрашивать
+        if (!AppSettings.Current.AskMasterPassword) VaultKeyCache.Save(vault.ExportKey());
     }
 
     private void Save()
@@ -206,7 +221,7 @@ public partial class MainWindow : Window
     private async void OnSettings(object? sender, RoutedEventArgs e)
     {
         var language = AppSettings.Current.Language;
-        if (!await new SettingsWindow().ShowDialog<bool>(this)) return;
+        if (!await new SettingsWindow(_vault).ShowDialog<bool>(this)) return;
 
         // новые значения подхватываем у уже открытых терминалов
         foreach (var terminal in Tabs.Items.OfType<TabItem>().Select(t => t.Tag).Select(TerminalOf).OfType<TerminalControl>())
@@ -553,6 +568,15 @@ public partial class MainWindow : Window
         public TabItem? Tab { get; set; }
     }
 
+    /// <summary>Что известно о вкладке: как её закрыть, как перезапустить и остановлена ли сессия.</summary>
+    private sealed class TabState
+    {
+        public required Action OnClose { get; init; }
+        public Action? Restart { get; set; }
+        public bool Stopped { get; set; }
+    }
+
+    private readonly Dictionary<TabItem, TabState> _states = new();
     private readonly List<Pane> _panes = new();
     private int _focus;
 
@@ -693,6 +717,7 @@ public partial class MainWindow : Window
             pane.Tab = null;
         }
         Tabs.Items.Remove(tab);
+        _states.Remove(tab);
         tab.Tag = null;
         FillEmptyPanes();
         UpdateFrames();
@@ -700,9 +725,10 @@ public partial class MainWindow : Window
     }
 
     /// <summary>Добавляет вкладку с иконкой и кнопкой закрытия; onClose освобождает соединение.</summary>
-    internal TabItem AddTab(string title, Control content, Action onClose)
+    internal TabItem AddTab(string title, Control content, Action onClose, int? position = null)
     {
         var tab = new TabItem { Tag = content };
+        _states[tab] = new TabState { OnClose = onClose };
 
         var icon = new PathIcon { Width = 12, Height = 12, Data = IconResources.Get("IconTerminal"), Foreground = Brushes.DimGray };
         var close = new Button
@@ -723,21 +749,138 @@ public partial class MainWindow : Window
             Children = { icon, new TextBlock { Text = title, VerticalAlignment = VerticalAlignment.Center }, close },
         };
 
-        Tabs.Items.Add(tab);
+        if (position is { } at && at >= 0 && at <= Tabs.Items.Count) Tabs.Items.Insert(at, tab);
+        else Tabs.Items.Add(tab);
         Tabs.SelectedItem = tab;
         return tab;
     }
 
-    private void OnLocal(object? sender, RoutedEventArgs e)
+    // ---------- сессия завершилась: сообщение в окне, Enter / R / S ----------
+
+    private static string StoppedMessage()
+    {
+        const string esc = "\u001b";
+        return "\r\n" + esc + "[0m" + esc + "[91m" + Loc.T("Сеанс завершён") + esc + "[0m\r\n"
+               + "    - " + Loc.T("Нажмите <Enter>, чтобы закрыть вкладку") + "\r\n"
+               + "    - " + Loc.T("Нажмите R, чтобы перезапустить сеанс") + "\r\n"
+               + "    - " + Loc.T("Нажмите S, чтобы сохранить вывод терминала в файл") + "\r\n";
+    }
+
+    /// <summary>Подключает обработку клавиш «остановленной» вкладки. Пока сессия жива, клавиши идут терминалу как обычно.</summary>
+    private void WireStopKeys(TabItem tab, TerminalControl terminal)
+    {
+        // собственное сообщение терминала о выходе процесса нам не нужно
+        terminal.WritingMessage += (_, e) =>
+        {
+            if (e.Kind == TerminalMessageKind.ProcessExited) e.Handled = true;
+        };
+
+        terminal.AddHandler(InputElement.KeyDownEvent, (_, e) =>
+        {
+            if (!_states.TryGetValue(tab, out var state) || !state.Stopped) return;
+            e.Handled = true;
+            switch (e.Key)
+            {
+                case Key.Enter:
+                    state.OnClose();
+                    RemoveTab(tab);
+                    break;
+                case Key.R:
+                    state.Restart?.Invoke();
+                    break;
+                case Key.S:
+                    _ = SaveOutputAsync(terminal, tab);
+                    break;
+            }
+        }, RoutingStrategies.Tunnel);
+
+        // символы набранных клавиш в мёртвое соединение не отправляем
+        terminal.AddHandler(InputElement.TextInputEvent, (_, e) =>
+        {
+            if (_states.TryGetValue(tab, out var state) && state.Stopped) e.Handled = true;
+        }, RoutingStrategies.Tunnel);
+    }
+
+    /// <summary>Сессия закончилась (выход, обрыв, закрытие сервером): пишем сообщение в самом терминале.</summary>
+    private void MarkStopped(TabItem tab, TerminalControl terminal)
+    {
+        if (!_states.TryGetValue(tab, out var state) || state.Stopped) return;
+        state.Stopped = true;
+        try
+        {
+            // если программа умерла в полноэкранном режиме (vim), сначала возвращаем обычный экран и курсор
+            var leave = terminal.Terminal.IsAlternateBufferActive ? "\u001b[?1049l" : "";
+            terminal.Terminal.Write(leave + "\u001b[?25h" + StoppedMessage());
+        }
+        catch (Exception ex)
+        {
+            StatusText.Text = Loc.F("Ошибка: {0}", ex.Message);
+        }
+        FocusTerminal(tab);
+    }
+
+    private async Task SaveOutputAsync(TerminalControl terminal, TabItem tab)
+    {
+        var buffer = terminal.Terminal.Buffer;
+        var lines = new List<string>();
+        for (var i = 0; i < buffer.Length; i++)
+        {
+            var line = buffer.GetLine(i);
+            lines.Add(line is null ? "" : line.TranslateToString(true, 0, line.Length));
+        }
+        while (lines.Count > 0 && lines[^1].Length == 0) lines.RemoveAt(lines.Count - 1);
+
+        var title = (((tab.Header as StackPanel)?.Children.OfType<TextBlock>().FirstOrDefault())?.Text ?? "session");
+        foreach (var c in Path.GetInvalidFileNameChars()) title = title.Replace(c, '_');
+
+        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = Loc.T("Сохранить вывод терминала"),
+            SuggestedFileName = $"{title}-{DateTime.Now:yyyyMMdd-HHmmss}.txt",
+            DefaultExtension = "txt",
+            FileTypeChoices = new[] { new FilePickerFileType(Loc.T("Текстовые файлы")) { Patterns = new[] { "*.txt" } } },
+        });
+        if (file is null) return;
+
+        try
+        {
+            await using var stream = await file.OpenWriteAsync();
+            stream.SetLength(0);
+            await using var writer = new StreamWriter(stream, new System.Text.UTF8Encoding(false));
+            await writer.WriteAsync(string.Join(Environment.NewLine, lines) + Environment.NewLine);
+            StatusText.Text = Loc.F("Вывод сохранён: {0}", file.Name);
+        }
+        catch (Exception ex)
+        {
+            await Dialogs.Info(this, "Сохранить вывод терминала", Loc.F("Не удалось сохранить: {0}", ex.Message));
+        }
+    }
+
+    /// <summary>Перезапуск: вкладка заменяется новой на том же месте и в той же области.</summary>
+    private void RestartInPlace(TabItem tab, Action<int> reopen)
+    {
+        var index = Tabs.Items.IndexOf(tab);
+        var pane = _panes.FindIndex(p => ReferenceEquals(p.Tab, tab));
+        if (_states.TryGetValue(tab, out var state)) state.OnClose();
+        RemoveTab(tab);
+        if (pane >= 0) _focus = pane;
+        reopen(index);
+    }
+
+    private void OnLocal(object? sender, RoutedEventArgs e) => OpenLocal();
+
+    private void OpenLocal(int? position = null)
     {
         var terminal = TerminalFactory.Create("powershell.exe");
-        var tab = AddTab("Local", TerminalFactory.Host(terminal), () => { try { terminal.Kill(); } catch { } });
-        terminal.ProcessExited += (_, _) => Dispatcher.UIThread.Post(() => RemoveTab(tab));
+        var tab = AddTab("Local", TerminalFactory.Host(terminal), () => { try { terminal.Kill(); } catch { } }, position);
+        WireStopKeys(tab, terminal);
+        _states[tab].Restart = () => RestartInPlace(tab, index => OpenLocal(index));
+        terminal.ProcessExited += (_, _) => Dispatcher.UIThread.Post(() => MarkStopped(tab, terminal));
     }
 
     // ---------- подключение ----------
 
-    private async void Connect(SessionItem s)
+    private async void Connect(SessionItem s, int? position = null)
     {
         Func<Task<IPtyConnection>> open;
 
@@ -800,7 +943,9 @@ public partial class MainWindow : Window
             Release();
             view?.Detach();
             try { conn?.Kill(); } catch { }
-        });
+        }, position);
+        WireStopKeys(tab, terminal);
+        _states[tab].Restart = () => RestartInPlace(tab, index => Connect(s, index));
 
         try
         {
@@ -820,7 +965,7 @@ public partial class MainWindow : Window
             {
                 Release();
                 view?.Detach();
-                RemoveTab(tab);
+                MarkStopped(tab, terminal);
             });
 
             s.ConnectionCount++;

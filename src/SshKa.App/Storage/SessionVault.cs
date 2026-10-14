@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -26,8 +26,8 @@ public sealed class SessionVault
     };
 
     private readonly string _path;
-    private readonly byte[] _key;
-    private readonly KdfParams _kdf;
+    private byte[] _key;
+    private KdfParams _kdf;
 
     public ObservableCollection<SessionItem> Root { get; } = new();
 
@@ -57,7 +57,22 @@ public sealed class SessionVault
         if (file.Version != Version)
             throw new InvalidDataException($"Неподдерживаемая версия хранилища: {file.Version}");
 
-        var key = Derive(masterPassword, file.Kdf);
+        return Open(path, file, Derive(masterPassword, file.Kdf));
+    }
+
+    /// <summary>Открывает хранилище готовым ключом (запомненным на этом компьютере), без пароля.</summary>
+    /// <exception cref="CryptographicException">Ключ не подходит или файл повреждён.</exception>
+    public static SessionVault UnlockWithKey(string path, byte[] key)
+    {
+        var file = JsonSerializer.Deserialize<VaultFile>(File.ReadAllText(path), Json)
+                   ?? throw new InvalidDataException("Пустой файл хранилища");
+        if (file.Version != Version)
+            throw new InvalidDataException($"Неподдерживаемая версия хранилища: {file.Version}");
+        return Open(path, file, key);
+    }
+
+    private static SessionVault Open(string path, VaultFile file, byte[] key)
+    {
         var plain = new byte[file.Data.Length];
         using (var aes = new AesGcm(key, TagSize))
             aes.Decrypt(file.Nonce, file.Data, file.Tag, plain);
@@ -66,6 +81,24 @@ public sealed class SessionVault
         var items = JsonSerializer.Deserialize<List<SessionItem>>(plain, Json) ?? new();
         foreach (var i in items) vault.Root.Add(i);
         return vault;
+    }
+
+    /// <summary>Копия ключа шифрования (для запоминания на этом компьютере).</summary>
+    public byte[] ExportKey() => (byte[])_key.Clone();
+
+    /// <summary>Совпадает ли пароль с мастер-паролем этого хранилища.</summary>
+    public bool VerifyPassword(string password) =>
+        CryptographicOperations.FixedTimeEquals(Derive(password, _kdf), _key);
+
+    /// <summary>Меняет мастер-пароль: новая соль, новый ключ, файл перешифровывается.</summary>
+    /// <exception cref="CryptographicException">Текущий пароль неверен.</exception>
+    public void ChangePassword(string current, string newPassword)
+    {
+        if (!VerifyPassword(current)) throw new CryptographicException("Неверный мастер-пароль");
+        var kdf = new KdfParams { Salt = RandomNumberGenerator.GetBytes(SaltSize) };
+        _key = Derive(newPassword, kdf);
+        _kdf = kdf;
+        Save();
     }
 
     public void Save()

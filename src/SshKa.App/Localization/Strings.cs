@@ -1,4 +1,4 @@
-namespace SshKa.App.Localization;
+﻿namespace SshKa.App.Localization;
 
 /// <summary>Английские тексты интерфейса; ключ — русский оригинал (длинные тексты склеены так же, как в коде).</summary>
 internal static class Strings
@@ -258,5 +258,35 @@ internal static class Strings
         // строка состояния сервера
         ["{0} д. {1} ч."] = "{0} d {1} h",
         ["{0} ч. {1} мин."] = "{0} h {1} min",
+
+        // сеанс завершён
+        ["Сеанс завершён"] = "Session stopped",
+        ["Нажмите <Enter>, чтобы закрыть вкладку"] = "Press <Return> to exit tab",
+        ["Нажмите R, чтобы перезапустить сеанс"] = "Press R to restart session",
+        ["Нажмите S, чтобы сохранить вывод терминала в файл"] = "Press S to save terminal output to file",
+        ["Сохранить вывод терминала"] = "Save terminal output",
+        ["Текстовые файлы"] = "Text files",
+        ["Вывод сохранён: {0}"] = "Output saved: {0}",
+
+        // безопасность
+        ["Безопасность"] = "Security",
+        ["Спрашивать мастер-пароль при каждом запуске"] = "Ask for the master password on every start",
+        ["Мастер-пароль шифрует файл с сессиями и паролями. По умолчанию после первого ввода программа запоминает ключ на этом компьютере " +
+         "(он защищён Windows и привязан к вашей учётной записи), поэтому при запуске пароль не спрашивается."] =
+            "The master password encrypts the file with sessions and passwords. By default, after the first entry the program remembers the key on this computer " +
+            "(it is protected by Windows and tied to your account), so the password is not asked on start.",
+        ["Если включить, ключ не запоминается и пароль нужен при каждом запуске. Это надёжнее, если к вашей учётной записи Windows имеют доступ другие люди."] =
+            "If enabled, the key is not remembered and the password is required on every start. This is safer if other people can use your Windows account.",
+        ["Сменить мастер-пароль…"] = "Change master password…",
+        ["Проверить мастер-пароль…"] = "Check master password…",
+        ["Смена мастер-пароля"] = "Change master password",
+        ["Мастер-пароль изменён."] = "The master password has been changed.",
+        ["Проверка мастер-пароля"] = "Check master password",
+        ["Пароль верный."] = "The password is correct.",
+        ["Пароль неверный."] = "The password is wrong.",
+        ["Сменить"] = "Change",
+        ["Текущий пароль"] = "Current password",
+        ["Новый пароль"] = "New password",
+        ["Повторите новый пароль"] = "Repeat the new password",
     };
 }

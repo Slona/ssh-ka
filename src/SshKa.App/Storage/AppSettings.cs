@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace SshKa.App.Storage;
@@ -37,6 +37,9 @@ public sealed class AppSettings
 
     /// <summary>Язык интерфейса: "ru" или "en". Применяется после перезапуска.</summary>
     public string Language { get; set; } = "ru";
+
+    /// <summary>Спрашивать мастер-пароль при каждом запуске. По умолчанию нет: ключ запоминается на этом компьютере (DPAPI).</summary>
+    public bool AskMasterPassword { get; set; }
 
     /// <summary>Показывать панель состояния сервера под терминалом.</summary>
     public bool ShowServerStatus { get; set; } = true;

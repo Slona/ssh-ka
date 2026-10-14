@@ -215,4 +215,43 @@ public static class Dialogs
         Loc.Apply(win);
         return await win.ShowDialog<bool>(owner);
     }
+
+    /// <summary>Смена мастер-пароля. apply получает текущий и новый пароль и возвращает текст ошибки или null.</summary>
+    public static async Task<bool> ChangePassword(Window owner, Func<string, string, Task<string?>> apply)
+    {
+        var current = new TextBox { PasswordChar = '*', MinWidth = 300 };
+        var next = new TextBox { PasswordChar = '*' };
+        var repeat = new TextBox { PasswordChar = '*' };
+        var error = new TextBlock { Foreground = Avalonia.Media.Brushes.IndianRed, TextWrapping = Avalonia.Media.TextWrapping.Wrap, MaxWidth = 300 };
+        var buttons = Buttons(out var ok, out var cancel, "Сменить");
+        var win = Make("Смена мастер-пароля");
+
+        ((StackPanel)win.Content!).Children.AddRange(new Control[]
+        {
+            new TextBlock { Text = "Текущий пароль" }, current,
+            new TextBlock { Text = "Новый пароль" }, next,
+            new TextBlock { Text = "Повторите новый пароль" }, repeat,
+            error, buttons,
+        });
+
+        ok.Click += async (_, _) =>
+        {
+            var cur = current.Text ?? "";
+            var pw = next.Text ?? "";
+            if (cur.Length == 0) { error.Text = Loc.T("Введите пароль"); return; }
+            if (pw.Length < 8) { error.Text = Loc.T("Минимум 8 символов"); return; }
+            if (pw != repeat.Text) { error.Text = Loc.T("Пароли не совпадают"); return; }
+
+            ok.IsEnabled = false;
+            error.Text = Loc.T("Проверка…");
+            var err = await apply(cur, pw);
+            if (err is null) { win.Close(true); return; }
+            error.Text = Loc.T(err);
+            ok.IsEnabled = true;
+        };
+        cancel.Click += (_, _) => win.Close(false);
+        win.Opened += (_, _) => current.Focus();
+        Loc.Apply(win);
+        return await win.ShowDialog<bool>(owner);
+    }
 }

@@ -1,3 +1,4 @@
+﻿using System.Security.Cryptography;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -19,8 +20,12 @@ public sealed class SettingsWindow : Window
     private readonly CheckBox _highlight = new() { Content = Loc.T("Подсвечивать вывод по правилам") };
     private readonly HighlightRulesPanel _rules = new();
 
-    public SettingsWindow()
+    private readonly SessionVault? _vault;
+    private readonly CheckBox _askPassword = new() { Content = Loc.T("Спрашивать мастер-пароль при каждом запуске") };
+
+    public SettingsWindow(SessionVault? vault = null)
     {
+        _vault = vault;
         Title = Loc.T("Настройки");
         Width = 860;
         Height = 640;
@@ -38,6 +43,7 @@ public sealed class SettingsWindow : Window
         _bold.IsChecked = settings.TerminalBold;
         _copyOnSelect.IsChecked = settings.CopyOnSelect;
         _highlight.IsChecked = settings.HighlightEnabled;
+        _askPassword.IsChecked = settings.AskMasterPassword;
 
         var tabs = new TabControl
         {
@@ -46,6 +52,7 @@ public sealed class SettingsWindow : Window
                 new TabItem { Header = Loc.T("Общие"), Content = GeneralPage() },
                 new TabItem { Header = Loc.T("Терминал"), Content = TerminalPage() },
                 new TabItem { Header = Loc.T("Подсветка"), Content = HighlightPage() },
+                new TabItem { Header = Loc.T("Безопасность"), Content = SecurityPage() },
             },
         };
 
@@ -81,6 +88,53 @@ public sealed class SettingsWindow : Window
 
     private static TextBlock Hint(string text) => new() { Text = Loc.T(text), Opacity = 0.65, TextWrapping = TextWrapping.Wrap };
 
+    private Control SecurityPage()
+    {
+        var change = new Button { Content = Loc.T("Сменить мастер-пароль…"), IsEnabled = _vault is not null, HorizontalAlignment = HorizontalAlignment.Left };
+        var check = new Button { Content = Loc.T("Проверить мастер-пароль…"), IsEnabled = _vault is not null, HorizontalAlignment = HorizontalAlignment.Left };
+        change.Click += async (_, _) => await ChangePasswordAsync();
+        check.Click += async (_, _) => await CheckPasswordAsync();
+
+        _askPassword.IsEnabled = VaultKeyCache.IsSupported;
+        return Page(
+            Hint("Мастер-пароль шифрует файл с сессиями и паролями. По умолчанию после первого ввода программа запоминает ключ на этом компьютере " +
+                 "(он защищён Windows и привязан к вашей учётной записи), поэтому при запуске пароль не спрашивается."),
+            _askPassword,
+            Hint("Если включить, ключ не запоминается и пароль нужен при каждом запуске. Это надёжнее, если к вашей учётной записи Windows имеют доступ другие люди."),
+            change,
+            check);
+    }
+
+    private async Task ChangePasswordAsync()
+    {
+        if (_vault is null) return;
+        var changed = await Dialogs.ChangePassword(this, (current, next) => Task.Run<string?>(() =>
+        {
+            try
+            {
+                _vault.ChangePassword(current, next);
+                return null;
+            }
+            catch (CryptographicException) { return "Неверный мастер-пароль"; }
+            catch (Exception ex) { return ex.Message; }
+        }));
+        if (!changed) return;
+
+        // запомненный ключ устарел: обновляем его или удаляем, если пароль нужен при каждом запуске
+        if (_askPassword.IsChecked == true) VaultKeyCache.Delete();
+        else VaultKeyCache.Save(_vault.ExportKey());
+        await Dialogs.Info(this, "Смена мастер-пароля", "Мастер-пароль изменён.");
+    }
+
+    private async Task CheckPasswordAsync()
+    {
+        if (_vault is null) return;
+        var entered = await Dialogs.AskText(this, "Проверка мастер-пароля", "Введите мастер-пароль", password: true);
+        if (entered is null) return;
+        var ok = await Task.Run(() => _vault.VerifyPassword(entered));
+        await Dialogs.Info(this, "Проверка мастер-пароля", ok ? "Пароль верный." : "Пароль неверный.");
+    }
+
     private Control GeneralPage() => Page(
         Label("Язык интерфейса"),
         _language,
@@ -115,7 +169,11 @@ public sealed class SettingsWindow : Window
         settings.TerminalBold = _bold.IsChecked == true;
         settings.CopyOnSelect = _copyOnSelect.IsChecked == true;
         settings.HighlightEnabled = _highlight.IsChecked == true;
+        settings.AskMasterPassword = _askPassword.IsChecked == true;
         settings.Save();
+        // выбранный режим: запоминать ключ на этом компьютере или спрашивать пароль при запуске
+        if (settings.AskMasterPassword) VaultKeyCache.Delete();
+        else if (_vault is not null) VaultKeyCache.Save(_vault.ExportKey());
         HighlightEngine.Reload();
         return true;
     }
