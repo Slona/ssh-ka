@@ -2,7 +2,9 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Threading;
 using Iciclecreek.Terminal;
 using SshKa.App.Storage;
 
@@ -22,6 +24,9 @@ public static class TerminalFactory
             // Контрол сам запускает локальную программу (по умолчанию cmd.exe) сразу, как появится на экране.
             // Для SSH и Telnet это лишний процесс, поэтому пустая строка; для Local запуск делает сам контрол.
             Process = process,
+            // курсор-маркер, как в MobaXterm: блок без мигания
+            CursorStyle = XTerm.Common.CursorStyle.Block,
+            CursorBlink = false,
         };
         ApplySettings(terminal);
 
@@ -48,16 +53,66 @@ public static class TerminalFactory
         terminal.FontFamily = new FontFamily(settings.TerminalFontFamily);
         terminal.FontSize = settings.TerminalFontSize;
         terminal.FontWeight = FontWeight.Normal;
-        if (terminal.Parent is Border border) border.Padding = EdgeOf(settings.TerminalFontSize);
+        if (terminal.Parent is Grid { Parent: Border border }) border.Padding = EdgeOf(settings.TerminalFontSize);
     }
 
     /// <summary>Терминал в рамке с отступом слева примерно в полсимвола; фон рамки совпадает с фоном терминала.</summary>
-    public static Border Host(TerminalControl terminal) => new()
+    public static Border Host(TerminalControl terminal)
     {
-        Background = Back,
-        Padding = EdgeOf(AppSettings.Current.TerminalFontSize),
-        Child = terminal,
-    };
+        // пустой маркер на месте курсора, пока окно или терминал неактивны (как в MobaXterm)
+        var outline = new Border
+        {
+            BorderThickness = new Thickness(1),
+            BorderBrush = new SolidColorBrush(Color.Parse("#D8D8D8")),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+            IsHitTestVisible = false,
+            IsVisible = false,
+        };
+        var grid = new Grid { Children = { terminal, outline } };
+        var host = new Border
+        {
+            Background = Back,
+            Padding = EdgeOf(AppSettings.Current.TerminalFontSize),
+            Child = grid,
+        };
+
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
+        timer.Tick += (_, _) => UpdateCursor(terminal, outline);
+        host.AttachedToVisualTree += (_, _) => timer.Start();
+        host.DetachedFromVisualTree += (_, _) => timer.Stop();
+        return host;
+    }
+
+    /// <summary>Для проверки внешнего вида: считать терминал неактивным.</summary>
+    internal static bool ForceInactive;
+
+    /// <summary>Активный терминал показывает залитый курсор-блок, неактивный (окно в фоне или фокус в другом месте) — пустой контур.</summary>
+    internal static void UpdateCursor(TerminalControl terminal, Border outline)
+    {
+        var window = TopLevel.GetTopLevel(terminal) as Window;
+        var active = !ForceInactive && window is { IsActive: true } && terminal.IsKeyboardFocusWithin;
+        try
+        {
+            terminal.SuppressCursor = !active;
+            if (active || terminal.CharWidth <= 0 || terminal.CharHeight <= 0)
+            {
+                outline.IsVisible = false;
+                return;
+            }
+
+            var buffer = terminal.Terminal.Buffer;
+            var row = buffer.YBase + buffer.Y - buffer.YDisp;
+            outline.Width = terminal.CharWidth;
+            outline.Height = terminal.CharHeight;
+            outline.Margin = new Thickness(buffer.X * terminal.CharWidth + terminal.GutterWidth, row * terminal.CharHeight, 0, 0);
+            outline.IsVisible = row >= 0 && row < terminal.Terminal.Rows;
+        }
+        catch
+        {
+            outline.IsVisible = false; // терминал ещё не готов
+        }
+    }
 
     private static Thickness EdgeOf(double fontSize) => new(Math.Round(fontSize * 0.28), 0, 0, 0);
 

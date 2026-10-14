@@ -22,7 +22,35 @@ public partial class FilePanel : UserControl
     };
 
     /// <summary>Ход загрузки или скачивания в процентах (null — передача закончилась). Показывается в нижней строке окна.</summary>
-    public static event Action<double?>? TransferChanged;
+    public static event Action<(string Name, double Percent)?>? TransferChanged;
+
+    private static readonly HashSet<CancellationTokenSource> Running = new();
+
+    /// <summary>Отменяет все идущие сейчас загрузки и скачивания.</summary>
+    public static void CancelTransfers()
+    {
+        lock (Running)
+            foreach (var source in Running) source.Cancel();
+    }
+
+    /// <summary>Передаёт ход работы в интерфейс; после отмены новые значения не показываются.</summary>
+    private sealed class UiProgress : IProgress<TransferProgress>
+    {
+        private readonly CancellationToken _token;
+        private readonly Action<TransferProgress> _report;
+
+        public UiProgress(CancellationToken token, Action<TransferProgress> report)
+        {
+            _token = token;
+            _report = report;
+        }
+
+        public void Report(TransferProgress value) =>
+            Dispatcher.UIThread.Post(() => { if (!_token.IsCancellationRequested) _report(value); });
+    }
+
+    // токен отмены текущей операции (операции выполняются по одной, см. _busy)
+    private CancellationToken _token;
 
     private readonly AppSettings _settings = AppSettings.Current;
     private readonly ObservableCollection<RemoteEntry> _items = new();
@@ -257,12 +285,14 @@ public partial class FilePanel : UserControl
     {
         if (_fsFactory is null || _busy) return;
         _busy = true;
-        TransferChanged?.Invoke(0);
         Status.Text = Loc.T(title) + "…";
 
-        var progress = new Progress<TransferProgress>(p =>
+        using var cts = new CancellationTokenSource();
+        lock (Running) Running.Add(cts);
+        _token = cts.Token;
+        var progress = new UiProgress(cts.Token, p =>
         {
-            TransferChanged?.Invoke(p.Total > 0 ? p.Done * 100.0 / p.Total : 0);
+            TransferChanged?.Invoke((p.Name, p.Total > 0 ? p.Done * 100.0 / p.Total : 0));
             Status.Text = $"{Loc.T(title)}: {p.Name}";
         });
 
@@ -273,10 +303,21 @@ public partial class FilePanel : UserControl
         }
         catch (Exception ex)
         {
-            Status.Text = Loc.F("Ошибка: {0}", ex.Message);
+            if (cts.IsCancellationRequested)
+            {
+                Status.Text = $"{Loc.T(title)}: {Loc.T("отменено")}";
+                // канал, из которого оборвали передачу, начинаем заново
+                _fs?.Dispose();
+                _fs = null;
+            }
+            else
+            {
+                Status.Text = Loc.F("Ошибка: {0}", ex.Message);
+            }
         }
         finally
         {
+            lock (Running) Running.Remove(cts);
             TransferChanged?.Invoke(null);
             _busy = false;
         }
@@ -338,7 +379,7 @@ public partial class FilePanel : UserControl
 
         await RunAsync("Скачивание", async (fs, progress) =>
         {
-            foreach (var entry in toDownload) await fs.DownloadAsync(entry, dir, progress);
+            foreach (var entry in toDownload) await fs.DownloadAsync(entry, dir, progress, _token);
         }, refresh: false);
     }
 
@@ -387,7 +428,7 @@ public partial class FilePanel : UserControl
 
         await RunAsync("Загрузка", async (fs, progress) =>
         {
-            foreach (var p in toUpload) await fs.UploadAsync(p, target, progress);
+            foreach (var p in toUpload) await fs.UploadAsync(p, target, progress, _token);
         }, refresh: true);
     }
 

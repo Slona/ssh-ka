@@ -64,10 +64,14 @@ public sealed partial class ScpFileSystem : IRemoteFileSystem
         return result;
     }
 
-    public Task DownloadAsync(RemoteEntry entry, string localDir, IProgress<TransferProgress> progress) => Task.Run(() =>
+    public Task DownloadAsync(RemoteEntry entry, string localDir, IProgress<TransferProgress> progress, CancellationToken ct = default) => Task.Run(() =>
     {
-        void OnProgress(object? s, Renci.SshNet.Common.ScpDownloadEventArgs e) =>
+        // событие приходит из потока передачи: исключение здесь обрывает скачивание
+        void OnProgress(object? s, Renci.SshNet.Common.ScpDownloadEventArgs e)
+        {
+            ct.ThrowIfCancellationRequested();
             progress.Report(new(e.Filename, e.Downloaded, e.Size));
+        }
 
         _scp.Downloading += OnProgress;
         try
@@ -80,13 +84,21 @@ public sealed partial class ScpFileSystem : IRemoteFileSystem
             }
             else
             {
-                _scp.Download(entry.FullPath, new FileInfo(local));
+                try
+                {
+                    _scp.Download(entry.FullPath, new FileInfo(local));
+                }
+                catch (OperationCanceledException)
+                {
+                    try { File.Delete(local); } catch { } // недокачанный файл не оставляем
+                    throw;
+                }
             }
         }
         finally { _scp.Downloading -= OnProgress; }
     });
 
-    public async Task UploadAsync(string localPath, string remoteDir, IProgress<TransferProgress> progress)
+    public async Task UploadAsync(string localPath, string remoteDir, IProgress<TransferProgress> progress, CancellationToken ct = default)
     {
         // Upload(DirectoryInfo) кладёт в целевой каталог содержимое папки, а не саму папку — создаём её сами
         if (Directory.Exists(localPath))
@@ -94,18 +106,30 @@ public sealed partial class ScpFileSystem : IRemoteFileSystem
             var name = Path.GetFileName(localPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
             var target = PosixPath.Combine(remoteDir, name);
             await RunAsync($"mkdir -p -- {PosixPath.Quote(target)}");
-            await Task.Run(() => UploadCore(localPath, target, progress));
+            await Task.Run(() => UploadCore(localPath, target, progress, ct));
         }
         else
         {
-            await Task.Run(() => UploadCore(localPath, remoteDir, progress));
+            try
+            {
+                await Task.Run(() => UploadCore(localPath, remoteDir, progress, ct));
+            }
+            catch (OperationCanceledException)
+            {
+                // недогруженный файл на сервере не оставляем
+                try { await RunAsync($"rm -f -- {PosixPath.Quote(PosixPath.Combine(remoteDir, Path.GetFileName(localPath)))}"); } catch { }
+                throw;
+            }
         }
     }
 
-    private void UploadCore(string localPath, string remoteDir, IProgress<TransferProgress> progress)
+    private void UploadCore(string localPath, string remoteDir, IProgress<TransferProgress> progress, CancellationToken ct)
     {
-        void OnProgress(object? s, Renci.SshNet.Common.ScpUploadEventArgs e) =>
+        void OnProgress(object? s, Renci.SshNet.Common.ScpUploadEventArgs e)
+        {
+            ct.ThrowIfCancellationRequested();
             progress.Report(new(e.Filename, e.Uploaded, e.Size));
+        }
 
         _scp.Uploading += OnProgress;
         try

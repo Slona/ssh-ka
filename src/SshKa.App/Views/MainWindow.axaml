@@ -12,8 +12,15 @@
                 BorderBrush="{DynamicResource LineBrush}" Background="{DynamicResource AppBackground}">
             <!-- индикатор передачи файлов: ровно посередине, треть ширины окна -->
             <Grid ColumnDefinitions="*,*,*">
+                <TextBlock x:Name="TransferName" Grid.Column="0" HorizontalAlignment="Right" VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis" Margin="8,0,8,0" Opacity="0.85" IsVisible="False" />
                 <ProgressBar x:Name="TransferBar" Grid.Column="1" Height="16" Maximum="100" ShowProgressText="True"
                              VerticalAlignment="Center" IsVisible="False" />
+                <Button x:Name="TransferCancel" Grid.Column="2" Classes="icon" Width="18" Height="18" Margin="6,0,0,0"
+                        HorizontalAlignment="Left" VerticalAlignment="Center" IsVisible="False" Click="OnCancelTransfer"
+                        ToolTip.Tip="Отменить передачу">
+                    <PathIcon Data="{DynamicResource IconClose}" Foreground="#C0392B" Width="9" Height="9" />
+                </Button>
             </Grid>
         </Border>
 

@@ -46,8 +46,12 @@ public partial class MainWindow : Window
         MonitorMode.IsChecked = AppSettings.Current.ShowServerStatus;
         FilePanel.TransferChanged += value => Dispatcher.UIThread.Post(() =>
         {
-            TransferBar.IsVisible = value is not null;
-            if (value is { } percent) TransferBar.Value = percent;
+            TransferBar.IsVisible = TransferName.IsVisible = TransferCancel.IsVisible = value is not null;
+            if (value is { } state)
+            {
+                TransferBar.Value = state.Percent;
+                TransferName.Text = state.Name;
+            }
         });
         BuildImportMenu();
         BuildSplitMenu();
@@ -149,6 +153,8 @@ public partial class MainWindow : Window
         ExplorerHost.IsVisible = explorer;
         RefreshExplorer();
     }
+
+    private void OnCancelTransfer(object? sender, RoutedEventArgs e) => FilePanel.CancelTransfers();
 
     private void OnCollapse(object? sender, RoutedEventArgs e) => SetCollapsed(!_collapsed);
 
@@ -591,7 +597,7 @@ public partial class MainWindow : Window
     private static TerminalControl? TerminalOf(object? view) => view switch
     {
         SessionView s => s.Terminal,
-        Border { Child: TerminalControl t } => t,
+        Border { Child: Grid g } when g.Children.OfType<TerminalControl>().FirstOrDefault() is { } t => t,
         TerminalControl t => t,
         _ => null,
     };

@@ -35,8 +35,8 @@ public sealed class AppSettings
     /// <summary>Выделенный в терминале текст сразу попадает в буфер обмена (как в PuTTY).</summary>
     public bool CopyOnSelect { get; set; } = true;
 
-    /// <summary>Язык интерфейса: "ru" или "en". Применяется после перезапуска.</summary>
-    public string Language { get; set; } = "ru";
+    /// <summary>Язык интерфейса: "ru" или "en". По умолчанию язык системы: русский, иначе английский. Применяется после перезапуска.</summary>
+    public string Language { get; set; } = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ru" ? "ru" : "en";
 
     /// <summary>Спрашивать мастер-пароль при каждом запуске. По умолчанию нет: ключ запоминается на этом компьютере (DPAPI).</summary>
     public bool AskMasterPassword { get; set; }

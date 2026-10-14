@@ -72,30 +72,43 @@ public sealed class SftpFileSystem : IRemoteFileSystem
         }
     }
 
-    public Task DownloadAsync(RemoteEntry entry, string localDir, IProgress<TransferProgress> progress) =>
-        Task.Run(() => Download(entry.FullPath, entry.Name, entry.IsDirectory, localDir, progress));
+    public Task DownloadAsync(RemoteEntry entry, string localDir, IProgress<TransferProgress> progress, CancellationToken ct = default) =>
+        Task.Run(() => Download(entry.FullPath, entry.Name, entry.IsDirectory, localDir, progress, ct), ct);
 
-    private void Download(string remotePath, string name, bool isDirectory, string localDir, IProgress<TransferProgress> progress)
+    private async Task Download(string remotePath, string name, bool isDirectory, string localDir, IProgress<TransferProgress> progress, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
         var local = Path.Combine(localDir, name);
         if (isDirectory)
         {
             Directory.CreateDirectory(local);
             foreach (var f in _client.ListDirectory(remotePath).Where(f => f.Name is not ("." or "..")))
-                Download(f.FullName, f.Name, f.IsDirectory, local, progress);
+                await Download(f.FullName, f.Name, f.IsDirectory, local, progress, ct);
             return;
         }
 
         var total = _client.GetAttributes(remotePath).Size;
-        using var stream = File.Create(local);
-        _client.DownloadFile(remotePath, stream, done => progress.Report(new(name, (long)done, total)));
+        try
+        {
+            using var stream = File.Create(local);
+            // колбэк прогресса библиотеки работает в потоке пула и не должен бросать исключения, поэтому отмена идёт через токен
+            await _client.DownloadFileAsync(remotePath, stream,
+                new Progress<DownloadFileProgressReport>(r => progress.Report(new(name, (long)r.TotalBytesDownloaded, total))), ct);
+        }
+        catch
+        {
+            // оборванная (отменённая) передача не должна оставлять недокачанный файл
+            try { File.Delete(local); } catch { }
+            throw;
+        }
     }
 
-    public Task UploadAsync(string localPath, string remoteDir, IProgress<TransferProgress> progress) =>
-        Task.Run(() => Upload(localPath, remoteDir, progress));
+    public Task UploadAsync(string localPath, string remoteDir, IProgress<TransferProgress> progress, CancellationToken ct = default) =>
+        Task.Run(() => Upload(localPath, remoteDir, progress, ct), ct);
 
-    private void Upload(string localPath, string remoteDir, IProgress<TransferProgress> progress)
+    private async Task Upload(string localPath, string remoteDir, IProgress<TransferProgress> progress, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
         var name = Path.GetFileName(localPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
         var remote = PosixPath.Combine(remoteDir, name);
 
@@ -103,13 +116,23 @@ public sealed class SftpFileSystem : IRemoteFileSystem
         {
             if (!_client.Exists(remote)) _client.CreateDirectory(remote);
             foreach (var entry in Directory.EnumerateFileSystemEntries(localPath))
-                Upload(entry, remote, progress);
+                await Upload(entry, remote, progress, ct);
             return;
         }
 
         var total = new FileInfo(localPath).Length;
         using var stream = File.OpenRead(localPath);
-        _client.UploadFile(stream, remote, true, done => progress.Report(new(name, (long)done, total)));
+        try
+        {
+            await _client.UploadFileAsync(stream, remote, true,
+                new Progress<UploadFileProgressReport>(r => progress.Report(new(name, (long)r.TotalBytesUploaded, total))), ct);
+        }
+        catch (OperationCanceledException)
+        {
+            // недогруженный файл на сервере не оставляем
+            try { _client.DeleteFile(remote); } catch { }
+            throw;
+        }
     }
 
     public Task CreateDirectoryAsync(string path) => Task.Run(() => _client.CreateDirectory(path));

@@ -1,4 +1,4 @@
-namespace SshKa.App.Files;
+﻿namespace SshKa.App.Files;
 
 /// <summary>Работа с файлами сервера; реализации отличаются протоколом передачи (SFTP или SCP).</summary>
 public interface IRemoteFileSystem : IDisposable
@@ -11,10 +11,10 @@ public interface IRemoteFileSystem : IDisposable
     Task<IReadOnlyList<RemoteEntry>> ListAsync(string path);
 
     /// <summary>Скачивает файл или каталог (рекурсивно) в локальную папку localDir.</summary>
-    Task DownloadAsync(RemoteEntry entry, string localDir, IProgress<TransferProgress> progress);
+    Task DownloadAsync(RemoteEntry entry, string localDir, IProgress<TransferProgress> progress, CancellationToken ct = default);
 
     /// <summary>Загружает локальный файл или каталог (рекурсивно) в удалённый каталог remoteDir.</summary>
-    Task UploadAsync(string localPath, string remoteDir, IProgress<TransferProgress> progress);
+    Task UploadAsync(string localPath, string remoteDir, IProgress<TransferProgress> progress, CancellationToken ct = default);
 
     Task CreateDirectoryAsync(string path);
     Task DeleteAsync(RemoteEntry entry);

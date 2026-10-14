@@ -271,6 +271,9 @@ internal static class Strings
         ["Сайт"] = "Website",
         ["Исходный код, ошибки и пожелания (GitHub)"] = "Source code, bug reports and requests (GitHub)",
 
+        ["отменено"] = "cancelled",
+        ["Отменить передачу"] = "Cancel the transfer",
+
         // безопасность
         ["Безопасность"] = "Security",
         ["Спрашивать мастер-пароль при каждом запуске"] = "Ask for the master password on every start",
