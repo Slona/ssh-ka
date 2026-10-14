@@ -19,7 +19,7 @@ public static class VaultKeyCache
 
     public static void Save(byte[] key, string? path = null)
     {
-        if (!IsSupported) return;
+        if (!OperatingSystem.IsWindows()) return;
         path ??= DefaultPath;
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.WriteAllBytes(path, ProtectedData.Protect(key, Entropy, DataProtectionScope.CurrentUser));
@@ -29,7 +29,7 @@ public static class VaultKeyCache
     public static byte[]? TryLoad(string? path = null)
     {
         path ??= DefaultPath;
-        if (!IsSupported || !File.Exists(path)) return null;
+        if (!OperatingSystem.IsWindows() || !File.Exists(path)) return null;
         try { return ProtectedData.Unprotect(File.ReadAllBytes(path), Entropy, DataProtectionScope.CurrentUser); }
         catch { return null; }
     }

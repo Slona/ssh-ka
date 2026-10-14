@@ -44,6 +44,11 @@ public partial class MainWindow : Window
         HighlightEngine.Reload();
         Loc.Apply(this);
         MonitorMode.IsChecked = AppSettings.Current.ShowServerStatus;
+        FilePanel.TransferChanged += value => Dispatcher.UIThread.Post(() =>
+        {
+            TransferBar.IsVisible = value is not null;
+            if (value is { } percent) TransferBar.Value = percent;
+        });
         BuildImportMenu();
         BuildSplitMenu();
         BuildPanes(1);

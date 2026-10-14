@@ -21,6 +21,9 @@ public partial class FilePanel : UserControl
         ["name"] = "Имя", ["size"] = "Размер", ["date"] = "Изменён", ["owner"] = "Владелец", ["perm"] = "Права",
     };
 
+    /// <summary>Ход загрузки или скачивания в процентах (null — передача закончилась). Показывается в нижней строке окна.</summary>
+    public static event Action<double?>? TransferChanged;
+
     private readonly AppSettings _settings = AppSettings.Current;
     private readonly ObservableCollection<RemoteEntry> _items = new();
     private List<RemoteEntry> _current = new();
@@ -254,13 +257,12 @@ public partial class FilePanel : UserControl
     {
         if (_fsFactory is null || _busy) return;
         _busy = true;
-        Progress.IsVisible = true;
-        Progress.Value = 0;
+        TransferChanged?.Invoke(0);
         Status.Text = Loc.T(title) + "…";
 
         var progress = new Progress<TransferProgress>(p =>
         {
-            Progress.Value = p.Total > 0 ? p.Done * 100.0 / p.Total : 0;
+            TransferChanged?.Invoke(p.Total > 0 ? p.Done * 100.0 / p.Total : 0);
             Status.Text = $"{Loc.T(title)}: {p.Name}";
         });
 
@@ -275,7 +277,7 @@ public partial class FilePanel : UserControl
         }
         finally
         {
-            Progress.IsVisible = false;
+            TransferChanged?.Invoke(null);
             _busy = false;
         }
 

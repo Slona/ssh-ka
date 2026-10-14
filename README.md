@@ -159,6 +159,14 @@ src/SshKa.App/
 
 ## Сайт и выпуск
 
-Лендинг лежит в `site/` и опубликован на https://sshka.slona.me (сервер `msk-1-vm-fwwk`, nginx, каталог `/var/www/sshka`).
+Лендинг лежит в `site/` и опубликован на https://sshka.slona.me (nginx, каталог `/var/www/sshka`).
 Выпуск: `dotnet publish src/SshKa.App -c Release -r win-x64 --self-contained`, из результата убрать `*.pdb`, запаковать в `SSH-ka-win-x64.zip`
 и положить в `/var/www/sshka/download/`; в `site/index.html` обновить версию, размер и SHA-256.
+
+## Обратная связь
+
+Ошибки и пожелания принимаются в разделе Issues репозитория: https://github.com/Slona/ssh-ka/issues. Сайт программы: https://sshka.slona.me.
+
+## Версии
+
+Версия записывается в `src/SshKa.App/SshKa.App.csproj` (`<Version>`), третье число — номер сборки; он растёт с каждой выданной сборкой и показывается в окне «О программе».

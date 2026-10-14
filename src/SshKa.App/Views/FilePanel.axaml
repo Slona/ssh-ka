@@ -114,7 +114,6 @@
         </DataGrid>
 
         <StackPanel Grid.Row="4" Margin="4,4,4,0" Spacing="2">
-            <ProgressBar x:Name="Progress" Height="5" Maximum="100" IsVisible="False" />
             <TextBlock x:Name="Status" TextWrapping="Wrap" Opacity="0.75" />
         </StackPanel>
 

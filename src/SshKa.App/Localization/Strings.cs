@@ -268,6 +268,9 @@ internal static class Strings
         ["Текстовые файлы"] = "Text files",
         ["Вывод сохранён: {0}"] = "Output saved: {0}",
 
+        ["Сайт"] = "Website",
+        ["Исходный код, ошибки и пожелания (GitHub)"] = "Source code, bug reports and requests (GitHub)",
+
         // безопасность
         ["Безопасность"] = "Security",
         ["Спрашивать мастер-пароль при каждом запуске"] = "Ask for the master password on every start",

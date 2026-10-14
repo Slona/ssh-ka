@@ -1,4 +1,4 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media.Imaging;
@@ -46,9 +46,33 @@ public sealed class AboutWindow : Window
             Margin = new Thickness(0, 8, 0, 0),
         });
 
+        panel.Children.Add(Link("Сайт", "https://sshka.slona.me"));
+        panel.Children.Add(Link("Исходный код, ошибки и пожелания (GitHub)", "https://github.com/Slona/ssh-ka"));
+
         var ok = new Button { Content = "OK", IsDefault = true, IsCancel = true, MinWidth = 80, HorizontalAlignment = HorizontalAlignment.Center, HorizontalContentAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 12, 0, 0) };
         ok.Click += (_, _) => Close();
         panel.Children.Add(ok);
         Content = panel;
+    }
+
+    /// <summary>Ссылка в виде подчёркнутого текста; открывается в браузере по умолчанию.</summary>
+    private TextBlock Link(string text, string url)
+    {
+        var link = new TextBlock
+        {
+            Text = Loc.T(text),
+            Foreground = IconResources.Brush("AccentBrush"),
+            TextDecorations = Avalonia.Media.TextDecorations.Underline,
+            Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand),
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        ToolTip.SetTip(link, url);
+        link.PointerPressed += async (_, e) =>
+        {
+            if (!e.GetCurrentPoint(link).Properties.IsLeftButtonPressed) return;
+            try { await Launcher.LaunchUriAsync(new Uri(url)); }
+            catch { /* браузер не открылся: адрес виден в подсказке */ }
+        };
+        return link;
     }
 }
