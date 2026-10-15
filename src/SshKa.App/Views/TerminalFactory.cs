@@ -1,6 +1,7 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
@@ -45,7 +46,56 @@ public static class TerminalFactory
         if (sender is not TerminalControl terminal) return;
         if (!e.GetCurrentPoint(terminal).Properties.IsRightButtonPressed) return;
         e.Handled = true;
-        _ = terminal.PasteAsync();
+        _ = PasteAsync(terminal);
+    }
+
+    /// <summary>
+    /// Вставка из буфера обмена. Буфер Windows может быть на мгновение занят другой программой (или нашим же
+    /// копированием выделенного), поэтому при сбое пробуем ещё раз, а в конце вставляем текст напрямую.
+    /// Причина сбоя пишется в paste.log рядом с настройками.
+    /// </summary>
+    private static async Task PasteAsync(TerminalControl terminal)
+    {
+        Exception? last = null;
+        for (var attempt = 0; attempt < 4; attempt++)
+        {
+            try
+            {
+                await terminal.PasteAsync();
+                return;
+            }
+            catch (Exception ex)
+            {
+                last = ex;
+                await Task.Delay(60);
+            }
+        }
+
+        try
+        {
+            var clipboard = TopLevel.GetTopLevel(terminal)?.Clipboard;
+            var text = clipboard is null ? null : await clipboard.TryGetTextAsync();
+            if (!string.IsNullOrEmpty(text)) await terminal.SendInputAsync(text.Replace("\r\n", "\r").Replace('\n', '\r'));
+        }
+        catch (Exception ex)
+        {
+            last = ex;
+        }
+        LogPasteFailure(last);
+    }
+
+    private static void LogPasteFailure(Exception? ex)
+    {
+        if (ex is null) return;
+        try
+        {
+            var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SshKa", "paste.log");
+            File.AppendAllText(path, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {ex}{Environment.NewLine}");
+        }
+        catch
+        {
+            // журнал нужен только для разбора, его отсутствие не должно ничего ломать
+        }
     }
 
     /// <summary>Подставляет текущие настройки шрифта (вызывается и для уже открытых терминалов).</summary>
