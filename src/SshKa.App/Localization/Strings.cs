@@ -274,6 +274,26 @@ internal static class Strings
         ["отменено"] = "cancelled",
         ["Отменить передачу"] = "Cancel the transfer",
 
+        ["Копировать вкладку"] = "Duplicate tab",
+        ["Закрыть вкладку"] = "Close tab",
+
+        // панель состояния сервера
+        ["Имя хоста"] = "Hostname",
+        ["Версия"] = "Version",
+        ["Текущая загрузка CPU"] = "Current CPU load",
+        ["Всего RAM"] = "Total RAM",
+        ["Занято RAM"] = "Used RAM",
+        ["Доступно RAM"] = "Available RAM",
+        ["Кэш"] = "Cached RAM",
+        ["Буферы"] = "Buffers",
+        ["Аптайм"] = "Uptime",
+        ["({0} секунд)"] = "({0} seconds)",
+        ["Вывод команды «df»:"] = "Output of the \"df\" command:",
+        ["всего отправлено"] = "total out",
+        ["всего получено"] = "total in",
+        ["ошибок"] = "errors",
+        ["потеряно"] = "dropped",
+
         // безопасность
         ["Безопасность"] = "Security",
         ["Спрашивать мастер-пароль при каждом запуске"] = "Ask for the master password on every start",

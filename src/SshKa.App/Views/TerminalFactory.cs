@@ -24,6 +24,8 @@ public static class TerminalFactory
             // Контрол сам запускает локальную программу (по умолчанию cmd.exe) сразу, как появится на экране.
             // Для SSH и Telnet это лишний процесс, поэтому пустая строка; для Local запуск делает сам контрол.
             Process = process,
+            // над окном терминала указатель мыши — текстовый (I-beam), так удобнее выделять
+            Cursor = new Cursor(StandardCursorType.Ibeam),
             // курсор-маркер, как в MobaXterm: блок без мигания
             CursorStyle = XTerm.Common.CursorStyle.Block,
             CursorBlink = false,

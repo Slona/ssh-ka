@@ -28,4 +28,10 @@
     <StreamGeometry x:Key="IconSingle">M3 3h18v18H3V3zm2 2v14h14V5H5z</StreamGeometry>
     <StreamGeometry x:Key="IconTwoColumns">M3 3h18v18H3V3zm2 2v14h6V5H5zm8 0v14h6V5h-6z</StreamGeometry>
     <StreamGeometry x:Key="IconFourPanes">M3 3h18v18H3V3zm2 2v6h6V5H5zm8 0v6h6V5h-6zM5 13v6h6v-6H5zm8 0v6h6v-6h-6z</StreamGeometry>
+    <!-- значки панели состояния сервера -->
+    <StreamGeometry x:Key="IconChip">M15 9H9v6h6V9zm-2 4h-2v-2h2v2zm8-2V9h-2V7c0-1.1-.9-2-2-2h-2V3h-2v2h-2V3H9v2H7c-1.1 0-2 .9-2 2v2H3v2h2v2H3v2h2v2c0 1.1.9 2 2 2h2v2h2v-2h2v2h2v-2h2c1.1 0 2-.9 2-2v-2h2v-2h-2v-2h2zm-4 6H7V7h10v10z</StreamGeometry>
+    <StreamGeometry x:Key="IconRam">F0 M3 6h18c.6 0 1 .4 1 1v9H2V7c0-.6.4-1 1-1z M5 9h3v4H5z M10.5 9h3v4h-3z M16 9h3v4h-3z M4 17h2v3H4z M8 17h2v3H8z M12 17h2v3h-2z M16 17h2v3h-2z</StreamGeometry>
+    <StreamGeometry x:Key="IconArrowDown">M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z</StreamGeometry>
+    <StreamGeometry x:Key="IconClock">M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z</StreamGeometry>
+    <StreamGeometry x:Key="IconDisk">F0 M6 2h12c1.1 0 2 .9 2 2v16c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2z M6 4v9h12V4H6z M6 15v5h12v-5H6z M15 16.5h2v2h-2z</StreamGeometry>
 </ResourceDictionary>

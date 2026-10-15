@@ -584,6 +584,8 @@ public partial class MainWindow : Window
     {
         public required Action OnClose { get; init; }
         public Action? Restart { get; set; }
+        public Action? Duplicate { get; set; }
+        public TerminalControl? Terminal { get; set; }
         public bool Stopped { get; set; }
     }
 
@@ -739,7 +741,8 @@ public partial class MainWindow : Window
     internal TabItem AddTab(string title, Control content, Action onClose, int? position = null)
     {
         var tab = new TabItem { Tag = content };
-        _states[tab] = new TabState { OnClose = onClose };
+        _states[tab] = new TabState { OnClose = onClose, Terminal = TerminalOf(content) };
+        tab.ContextMenu = BuildTabMenu(tab);
 
         var icon = new PathIcon { Width = 12, Height = 12, Data = IconResources.Get("IconTerminal"), Foreground = Brushes.DimGray };
         var close = new Button
@@ -764,6 +767,38 @@ public partial class MainWindow : Window
         else Tabs.Items.Add(tab);
         Tabs.SelectedItem = tab;
         return tab;
+    }
+
+    /// <summary>Меню по правой кнопке на названии вкладки: копировать, закрыть, сохранить вывод.</summary>
+    private ContextMenu BuildTabMenu(TabItem tab)
+    {
+        var copy = new MenuItem { Header = Loc.T("Копировать вкладку"), Icon = new PathIcon { Data = IconResources.Get("IconPlus"), Width = 12, Height = 12 } };
+        var close = new MenuItem { Header = Loc.T("Закрыть вкладку"), Icon = new PathIcon { Data = IconResources.Get("IconClose"), Width = 10, Height = 10 } };
+        var save = new MenuItem { Header = Loc.T("Сохранить вывод терминала"), Icon = new PathIcon { Data = IconResources.Get("IconDownload"), Width = 12, Height = 12 } };
+
+        copy.Click += (_, _) =>
+        {
+            if (_states.TryGetValue(tab, out var state)) state.Duplicate?.Invoke();
+        };
+        close.Click += (_, _) =>
+        {
+            if (!_states.TryGetValue(tab, out var state)) return;
+            state.OnClose();
+            RemoveTab(tab);
+        };
+        save.Click += (_, _) =>
+        {
+            if (_states.TryGetValue(tab, out var state) && state.Terminal is { } terminal) _ = SaveOutputAsync(terminal, tab);
+        };
+
+        var menu = new ContextMenu { Items = { copy, close, new Separator(), save } };
+        menu.Opening += (_, _) =>
+        {
+            _states.TryGetValue(tab, out var state);
+            copy.IsEnabled = state?.Duplicate is not null;
+            save.IsEnabled = state?.Terminal is not null;
+        };
+        return menu;
     }
 
     // ---------- сессия завершилась: сообщение в окне, Enter / R / S ----------
@@ -886,6 +921,7 @@ public partial class MainWindow : Window
         var tab = AddTab("Local", TerminalFactory.Host(terminal), () => { try { terminal.Kill(); } catch { } }, position);
         WireStopKeys(tab, terminal);
         _states[tab].Restart = () => RestartInPlace(tab, index => OpenLocal(index));
+        _states[tab].Duplicate = () => OpenLocal(Tabs.Items.IndexOf(tab) + 1);
         terminal.ProcessExited += (_, _) => Dispatcher.UIThread.Post(() => MarkStopped(tab, terminal));
     }
 
@@ -957,6 +993,7 @@ public partial class MainWindow : Window
         }, position);
         WireStopKeys(tab, terminal);
         _states[tab].Restart = () => RestartInPlace(tab, index => Connect(s, index));
+        _states[tab].Duplicate = () => Connect(s, Tabs.Items.IndexOf(tab) + 1);
 
         try
         {
