@@ -301,6 +301,8 @@ internal static class Strings
         ["MAC-адреса"] = "MAC addresses",
         ["Пояснения"] = "Notes",
 
+        ["Нет ответа от {0}…"] = "No response from {0}…",
+
         // безопасность
         ["Безопасность"] = "Security",
         ["Спрашивать мастер-пароль при каждом запуске"] = "Ask for the master password on every start",

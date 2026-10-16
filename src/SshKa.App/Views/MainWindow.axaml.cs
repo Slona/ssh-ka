@@ -1034,7 +1034,11 @@ public partial class MainWindow : Window
             }
 
             if (view is not null && conn is SshShellConnection ssh)
+            {
                 view.AttachConnection(ssh);
+                ssh.ResponsivenessChanged += responsive => Dispatcher.UIThread.Post(() =>
+                    StatusText.Text = responsive ? "" : Loc.F("Нет ответа от {0}…", s.Host));
+            }
             else
                 terminal.AttachConnection(new HighlightingPtyConnection(conn));
             terminal.ProcessExited += (_, _) => Dispatcher.UIThread.Post(() =>

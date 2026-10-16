@@ -18,8 +18,10 @@ public sealed class SshShellConnection : IPtyConnection
         _client = client;
         PtsBefore = ShellCwdTracker.ListPts(client); // снимок до открытия шелла, чтобы потом найти его терминал
         _shell = client.CreateShellStream("xterm-256color", (uint)cols, (uint)rows, 0, 0, 4096);
-        _shell.Closed += (_, _) => RaiseExited();
-        _client.ErrorOccurred += (_, _) => RaiseExited();
+        _host = client.ConnectionInfo.Host;
+        ConnectionLog.Write(_host, "shell opened");
+        _shell.Closed += (_, _) => { ConnectionLog.Write(_host, "shell closed by server"); RaiseExited(); };
+        _client.ErrorOccurred += (_, e) => { ConnectionLog.Write(_host, "connection error: " + e.Exception.GetType().Name + ": " + e.Exception.Message); RaiseExited(); };
 
         // Сервер, ушедший в перезагрузку или пропавший из сети, не всегда закрывает соединение. Пока по нему ничего не
         // передаётся, обрыв незаметен: поэтому раз в 10 секунд отправляем служебное сообщение (оно заодно не даёт
@@ -29,6 +31,7 @@ public sealed class SshShellConnection : IPtyConnection
     }
 
     private readonly CancellationTokenSource _watch = new();
+    private readonly string _host;
 
     private static readonly TimeSpan ProbeInterval = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(5);
@@ -50,11 +53,15 @@ public sealed class SshShellConnection : IPtyConnection
                 if (Volatile.Read(ref _exited) != 0) return;
                 if (!_client.IsConnected)
                 {
+                    ConnectionLog.Write(_host, "client reports not connected");
                     Drop();
                     return;
                 }
 
-                switch (await ProbeAsync())
+                var result = await ProbeAsync();
+                if (result != Probe.Alive) ConnectionLog.Write(_host, "probe: " + result + " (silent in a row: " + silent + ")");
+                SetResponsive(result == Probe.Alive);
+                switch (result)
                 {
                     case Probe.Alive:
                         silent = 0;
@@ -80,6 +87,18 @@ public sealed class SshShellConnection : IPtyConnection
 
     private enum Probe { Alive, Silent, Dead }
 
+    private bool _responsive = true;
+
+    /// <summary>Сервер перестал отвечать на проверки (false) или снова отвечает (true): для строки состояния.</summary>
+    public event Action<bool>? ResponsivenessChanged;
+
+    private void SetResponsive(bool value)
+    {
+        if (_responsive == value) return;
+        _responsive = value;
+        ResponsivenessChanged?.Invoke(value);
+    }
+
     private async Task<Probe> ProbeAsync()
     {
         var work = Task.Run(() =>
@@ -101,6 +120,7 @@ public sealed class SshShellConnection : IPtyConnection
         }
         catch (Exception ex)
         {
+            ConnectionLog.Write(_host, "probe failed: " + ex.GetType().Name + ": " + ex.Message);
             return ex switch
             {
                 Renci.SshNet.Common.SshOperationTimeoutException => Probe.Silent,
@@ -117,6 +137,7 @@ public sealed class SshShellConnection : IPtyConnection
     /// <summary>Соединение признано мёртвым: сообщаем об окончании сеанса и закрываем сокет в фоне.</summary>
     private void Drop()
     {
+        ConnectionLog.Write(_host, "connection dropped by watchdog");
         RaiseExited();
         _ = Task.Run(() =>
         {
