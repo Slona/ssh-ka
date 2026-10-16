@@ -1041,12 +1041,18 @@ public partial class MainWindow : Window
             }
             else
                 terminal.AttachConnection(new HighlightingPtyConnection(conn));
-            terminal.ProcessExited += (_, _) => Dispatcher.UIThread.Post(() =>
+            // Конец сеанса берём и от самого соединения: контрол терминала узнаёт об обрыве не всегда
+            // (если чтение из мёртвого канала не завершилось, его событие не приходит).
+            void OnEnded()
             {
+                StatusText.Text = ""; // «Нет ответа…» больше не актуально: сеанс завершён
                 Release();
                 view?.Detach();
                 MarkStopped(tab, terminal);
-            });
+            }
+            terminal.ProcessExited += (_, _) => Dispatcher.UIThread.Post(OnEnded);
+            conn.ProcessExited += (_, _) => Dispatcher.UIThread.Post(OnEnded);
+            if (conn.WaitForExit(0)) Dispatcher.UIThread.Post(OnEnded); // соединение могло закончиться до подписки
 
             s.ConnectionCount++;
             counted = true;

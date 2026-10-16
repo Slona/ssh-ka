@@ -20,8 +20,8 @@ public sealed class SshShellConnection : IPtyConnection
         _shell = client.CreateShellStream("xterm-256color", (uint)cols, (uint)rows, 0, 0, 4096);
         _host = client.ConnectionInfo.Host;
         ConnectionLog.Write(_host, "shell opened");
-        _shell.Closed += (_, _) => { ConnectionLog.Write(_host, "shell closed by server"); RaiseExited(); };
-        _client.ErrorOccurred += (_, e) => { ConnectionLog.Write(_host, "connection error: " + e.Exception.GetType().Name + ": " + e.Exception.Message); RaiseExited(); };
+        _shell.Closed += (_, _) => Drop("shell closed by server");
+        _client.ErrorOccurred += (_, e) => Drop("connection error: " + e.Exception.GetType().Name + ": " + e.Exception.Message);
 
         // Сервер, ушедший в перезагрузку или пропавший из сети, не всегда закрывает соединение. Пока по нему ничего не
         // передаётся, обрыв незаметен: поэтому раз в 10 секунд отправляем служебное сообщение (оно заодно не даёт
@@ -53,8 +53,7 @@ public sealed class SshShellConnection : IPtyConnection
                 if (Volatile.Read(ref _exited) != 0) return;
                 if (!_client.IsConnected)
                 {
-                    ConnectionLog.Write(_host, "client reports not connected");
-                    Drop();
+                    Drop("client reports not connected");
                     return;
                 }
 
@@ -67,12 +66,12 @@ public sealed class SshShellConnection : IPtyConnection
                         silent = 0;
                         break;
                     case Probe.Dead:
-                        Drop();
+                        Drop("probe: connection is dead");
                         return;
                     case Probe.Silent:
                         if (++silent >= ProbeFailuresToDrop)
                         {
-                            Drop();
+                            Drop("server not responding");
                             return;
                         }
                         break;
@@ -135,9 +134,9 @@ public sealed class SshShellConnection : IPtyConnection
     }
 
     /// <summary>Соединение признано мёртвым: сообщаем об окончании сеанса и закрываем сокет в фоне.</summary>
-    private void Drop()
+    private void Drop(string reason)
     {
-        ConnectionLog.Write(_host, "connection dropped by watchdog");
+        ConnectionLog.Write(_host, "session ended: " + reason);
         RaiseExited();
         _ = Task.Run(() =>
         {
