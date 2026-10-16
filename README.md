@@ -48,7 +48,7 @@ Website and downloads: https://sshka.slona.me
 
 **When a session ends**
 - When the connection closes (exit, drop, closed by the server), a "Session stopped" message with hints appears in the same terminal window:
-  **Enter** closes the tab, **R** restarts the session in the same place, **S** saves the terminal output to a text file.
+  **Enter** closes the tab, **R** restarts the session in the same window (the previous output stays above a "Session restarted" line), **S** saves the terminal output to a text file.
   A server that reboots or drops off the network without closing the connection is detected in about 15-20 seconds (the client probes the server every 5 seconds).
 
 **Window and top bar**

@@ -307,6 +307,8 @@ internal static class Strings
         ["Ничего не найдено"] = "Nothing found",
         ["Создать новую сессию и сразу подключиться"] = "Create a new session and connect right away",
 
+        ["Сеанс перезапущен"] = "Session restarted",
+
         // безопасность
         ["Безопасность"] = "Security",
         ["Спрашивать мастер-пароль при каждом запуске"] = "Ask for the master password on every start",

@@ -664,7 +664,9 @@ public partial class MainWindow : Window
     /// <summary>Что известно о вкладке: как её закрыть, как перезапустить и остановлена ли сессия.</summary>
     private sealed class TabState
     {
-        public required Action OnClose { get; init; }
+        public required Action OnClose { get; set; }
+        /// <summary>Что сделать, когда сеанс закончился (задаётся при каждом подключении).</summary>
+        public Action? OnEnded { get; set; }
         public Action? Restart { get; set; }
         public Action? Duplicate { get; set; }
         public SessionItem? Session { get; set; }
@@ -996,14 +998,29 @@ public partial class MainWindow : Window
     }
 
     /// <summary>Перезапуск: вкладка заменяется новой на том же месте и в той же области.</summary>
-    private void RestartInPlace(TabItem tab, Action<int> reopen)
+    /// <summary>Перезапуск в том же окне: прежний вывод остаётся, под ним черта и новый сеанс.</summary>
+    private void RestartLocal(TabItem tab, TerminalControl terminal)
     {
-        var index = Tabs.Items.IndexOf(tab);
-        var pane = _panes.FindIndex(p => ReferenceEquals(p.Tab, tab));
-        if (_states.TryGetValue(tab, out var state)) state.OnClose();
-        RemoveTab(tab);
-        if (pane >= 0) _focus = pane;
-        reopen(index);
+        if (!_states.TryGetValue(tab, out var state) || !state.Stopped) return;
+        state.Stopped = false;
+        WriteRestartMarker(terminal);
+        _ = terminal.LaunchProcess();
+        FocusTerminal(tab);
+    }
+
+    /// <summary>Строка-разделитель между старым и новым сеансом в окне терминала.</summary>
+    private static void WriteRestartMarker(TerminalControl terminal)
+    {
+        try
+        {
+            var esc = "\u001b";
+            var leave = terminal.Terminal.IsAlternateBufferActive ? esc + "[?1049l" : "";
+            terminal.Terminal.Write(leave + esc + "[0m" + esc + "[?25h\r\n" + esc + "[90m──── " + Loc.T("Сеанс перезапущен") + " ────" + esc + "[0m\r\n");
+        }
+        catch
+        {
+            // терминал ещё не готов: разделитель не критичен
+        }
     }
 
     private void OnLocal(object? sender, RoutedEventArgs e) => OpenLocal();
@@ -1013,14 +1030,17 @@ public partial class MainWindow : Window
         var terminal = TerminalFactory.Create("powershell.exe");
         var tab = AddTab("Local", TerminalFactory.Host(terminal), () => { try { terminal.Kill(); } catch { } }, position);
         WireStopKeys(tab, terminal);
-        _states[tab].Restart = () => RestartInPlace(tab, index => OpenLocal(index));
+        _states[tab].Restart = () => RestartLocal(tab, terminal);
         _states[tab].Duplicate = () => OpenLocal(Tabs.Items.IndexOf(tab) + 1);
         terminal.ProcessExited += (_, _) => Dispatcher.UIThread.Post(() => MarkStopped(tab, terminal));
     }
 
     // ---------- подключение ----------
 
-    private async void Connect(SessionItem s, int? position = null)
+    /// <summary>Вкладка, в которую подключается перезапущенный сеанс: терминал и его прежний вывод остаются.</summary>
+    private sealed record ReuseTarget(TabItem Tab, TerminalControl Terminal, SessionView? View);
+
+    private async void Connect(SessionItem s, int? position = null, ReuseTarget? reuse = null)
     {
         Func<Task<IPtyConnection>> open;
 
@@ -1089,21 +1109,53 @@ public partial class MainWindow : Window
             s.ConnectionCount--;
         }
 
-        var terminal = TerminalFactory.Create();
-        // у SSH-вкладки есть проводник и панель состояния, у Telnet их нет
-        var view = s.Protocol == Protocol.Ssh ? new SessionView(terminal) : null;
-        var tab = AddTab(s.Name, (Control?)view ?? TerminalFactory.Host(terminal), () =>
+        SessionView? view_ = null;
+
+        void CloseTab()
         {
             // закрытие вкладки: если соединение ещё устанавливается, оно будет оборвано по готовности
             closed = true;
             Release();
-            view?.Detach();
+            view_?.Detach();
             try { conn?.Kill(); } catch { }
-        }, position);
-        WireStopKeys(tab, terminal);
-        _states[tab].Restart = () => RestartInPlace(tab, index => Connect(s, index));
-        _states[tab].Duplicate = () => Connect(s, Tabs.Items.IndexOf(tab) + 1);
-        _states[tab].Session = s;
+        }
+
+        TerminalControl terminal;
+        SessionView? view;
+        TabItem tab;
+        if (reuse is null)
+        {
+            terminal = TerminalFactory.Create();
+            // у SSH-вкладки есть проводник и панель состояния, у Telnet их нет
+            view = s.Protocol == Protocol.Ssh ? new SessionView(terminal) : null;
+            view_ = view;
+            tab = AddTab(s.Name, (Control?)view ?? TerminalFactory.Host(terminal), CloseTab, position);
+            WireStopKeys(tab, terminal);
+            var created = tab;
+            _states[tab].Restart = () => Reconnect(created, s);
+            _states[tab].Duplicate = () => Connect(s, Tabs.Items.IndexOf(created) + 1);
+            _states[tab].Session = s;
+            // событие контрола приходит не всегда; соединение сообщает о конце само (см. ниже), это запасной путь
+            var creating = tab;
+            terminal.ProcessExited += (_, _) => Dispatcher.UIThread.Post(() =>
+            {
+                if (_states.TryGetValue(creating, out var st)) st.OnEnded?.Invoke();
+            });
+        }
+        else
+        {
+            (tab, terminal, view) = (reuse.Tab, reuse.Terminal, reuse.View);
+            view_ = view;
+            var state = _states[tab];
+            state.OnClose = CloseTab;
+            if (state.StoppedCounted)
+            {
+                s.StoppedCount--; // красная подсветка уходит: идёт новое подключение
+                state.StoppedCounted = false;
+            }
+            state.Stopped = false;
+            WriteRestartMarker(terminal);
+        }
 
         try
         {
@@ -1115,6 +1167,11 @@ public partial class MainWindow : Window
                 return;
             }
 
+            if (reuse is not null)
+            {
+                try { terminal.DetachConnection(); } catch { /* прежнего соединения уже нет */ }
+            }
+
             if (view is not null && conn is SshShellConnection ssh)
             {
                 view.AttachConnection(ssh);
@@ -1123,16 +1180,19 @@ public partial class MainWindow : Window
             }
             else
                 terminal.AttachConnection(new HighlightingPtyConnection(conn));
+
             // Конец сеанса берём и от самого соединения: контрол терминала узнаёт об обрыве не всегда
             // (если чтение из мёртвого канала не завершилось, его событие не приходит).
+            var attached = conn;
             void OnEnded()
             {
+                if (!ReferenceEquals(conn, attached)) return; // событие от прежнего соединения
                 StatusText.Text = ""; // «Нет ответа…» больше не актуально: сеанс завершён
                 Release();
                 view?.Detach();
                 MarkStopped(tab, terminal);
             }
-            terminal.ProcessExited += (_, _) => Dispatcher.UIThread.Post(OnEnded);
+            _states[tab].OnEnded = OnEnded;
             conn.ProcessExited += (_, _) => Dispatcher.UIThread.Post(OnEnded);
             if (conn.WaitForExit(0)) Dispatcher.UIThread.Post(OnEnded); // соединение могло закончиться до подписки
 
@@ -1149,8 +1209,25 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            RemoveTab(tab);
-            StatusText.Text = Loc.F("Ошибка: {0}", ex.Message);
+            if (reuse is null)
+            {
+                RemoveTab(tab);
+                StatusText.Text = Loc.F("Ошибка: {0}", ex.Message);
+            }
+            else
+            {
+                // перезапуск не удался: вкладка и прежний вывод остаются, можно нажать R ещё раз
+                StatusText.Text = "";
+                try { terminal.Terminal.Write("\u001b[91m" + Loc.F("Ошибка: {0}", ex.Message) + "\u001b[0m\r\n"); } catch { }
+                MarkStopped(tab, terminal);
+            }
         }
+    }
+
+    /// <summary>Перезапуск сеанса в том же окне терминала: прежний вывод сохраняется.</summary>
+    private void Reconnect(TabItem tab, SessionItem session)
+    {
+        if (!_states.TryGetValue(tab, out var state) || !state.Stopped || state.Terminal is not { } terminal) return;
+        Connect(session, null, new ReuseTarget(tab, terminal, tab.Tag as SessionView));
     }
 }
