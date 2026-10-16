@@ -948,11 +948,27 @@ public partial class MainWindow : Window
 
             open = () => Task.Run<IPtyConnection>(() =>
             {
-                AuthenticationMethod auth = s.Auth == AuthKind.Key
-                    ? new PrivateKeyAuthenticationMethod(s.Username,
-                        new PrivateKeyFile(s.KeyPath, s.Passphrase.Length > 0 ? s.Passphrase : null))
-                    : new PasswordAuthenticationMethod(s.Username, password);
-                var client = new SshClient(new ConnectionInfo(s.Host, s.Port, s.Username, auth));
+                var methods = new List<AuthenticationMethod>();
+                if (s.Auth == AuthKind.Key)
+                {
+                    methods.Add(new PrivateKeyAuthenticationMethod(s.Username,
+                        new PrivateKeyFile(s.KeyPath, s.Passphrase.Length > 0 ? s.Passphrase : null)));
+                }
+                else
+                {
+                    methods.Add(new PasswordAuthenticationMethod(s.Username, password));
+                    // Многие серверы (VMware ESXi, часть Linux с PAM) принимают пароль только как keyboard-interactive:
+                    // на запрос «Password:» отвечаем тем же паролем.
+                    var interactive = new KeyboardInteractiveAuthenticationMethod(s.Username);
+                    interactive.AuthenticationPrompt += (_, e) =>
+                    {
+                        foreach (var prompt in e.Prompts)
+                            if (prompt.Request.Contains("assword", StringComparison.OrdinalIgnoreCase) || prompt.Request.Contains("ароль", StringComparison.OrdinalIgnoreCase))
+                                prompt.Response = password;
+                    };
+                    methods.Add(interactive);
+                }
+                var client = new SshClient(new ConnectionInfo(s.Host, s.Port, s.Username, methods.ToArray()));
                 HostKeyVerifier.Attach(client);
                 try
                 {
