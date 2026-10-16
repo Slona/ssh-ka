@@ -296,6 +296,11 @@ internal static class Strings
 
         ["Лицензия MIT"] = "MIT License",
 
+        ["Статус: работает"] = "Status: up",
+        ["Статус: не работает"] = "Status: down",
+        ["MAC-адреса"] = "MAC addresses",
+        ["Пояснения"] = "Notes",
+
         // безопасность
         ["Безопасность"] = "Security",
         ["Спрашивать мастер-пароль при каждом запуске"] = "Ask for the master password on every start",

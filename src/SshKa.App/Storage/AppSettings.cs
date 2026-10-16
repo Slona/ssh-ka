@@ -55,8 +55,24 @@ public sealed class AppSettings
     /// <summary>Правила подсветки; null — ещё не менялись, действуют правила по умолчанию.</summary>
     public List<Highlight.HighlightRule>? HighlightRules { get; set; }
 
+    private bool _migrateRules;
+
     [JsonIgnore]
-    public List<Highlight.HighlightRule> EffectiveHighlightRules => HighlightRules ??= Highlight.HighlightRule.Defaults();
+    public List<Highlight.HighlightRule> EffectiveHighlightRules
+    {
+        get
+        {
+            MigrateRules();
+            return HighlightRules ??= Highlight.HighlightRule.Defaults();
+        }
+    }
+
+    private void MigrateRules()
+    {
+        if (!_migrateRules || HighlightRules is not { } saved) return;
+        _migrateRules = false;
+        saved.InsertRange(Math.Min(4, saved.Count), Highlight.HighlightRule.Statuses());
+    }
 
     private static AppSettings Load()
     {
@@ -70,6 +86,13 @@ public sealed class AppSettings
                     loaded.TerminalFontSize = 14; // шрифт чуть крупнее прежних 13
                     loaded.Version = 2;
                 }
+                if (loaded.Version < 3)
+                {
+                    // новые правила подсветки (состояния, MAC) подставим в уже сохранённый список при первом обращении к нему;
+                    // здесь нельзя: правила берут тексты у Loc, а тот сам читает настройки (круговая инициализация)
+                    loaded._migrateRules = loaded.HighlightRules is not null;
+                    loaded.Version = 3;
+                }
                 return loaded;
             }
         }
@@ -77,13 +100,14 @@ public sealed class AppSettings
         {
             // битый файл настроек не должен мешать запуску
         }
-        return new() { Version = 2 };
+        return new() { Version = 3 };
     }
 
     public void Save()
     {
         try
         {
+            MigrateRules(); // чтобы запись с новой версией не потеряла новые правила
             Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
             File.WriteAllText(FilePath, JsonSerializer.Serialize(this, Json));
         }

@@ -32,8 +32,32 @@ public partial class HighlightRule : ObservableObject
         Bold = Bold, Underline = Underline, IgnoreCase = IgnoreCase, Enabled = Enabled,
     };
 
+    /// <summary>
+    /// Правила для вывода команд вроде «esxcli network nic list»: состояния Up и Down, MAC-адреса, заголовки.
+    /// Добавлены в версии 3 настроек: у тех, кто уже сохранял свой список, они подставляются один раз при загрузке.
+    /// </summary>
+    public static List<HighlightRule> Statuses() => new()
+    {
+        new() { Name = Loc.T("Статус: работает"), Color = "#50FA7B",
+            Pattern = @"\b(up|enabled|active|running|online|connected|established|listening)\b" },
+        new() { Name = Loc.T("Статус: не работает"), Color = "#FF5555",
+            Pattern = @"\b(down|disabled|inactive|stopped|offline|disconnected|dead)\b" },
+        // MAC выше правила дат: иначе цифры вроде 11:61:94 внутри адреса покрасились бы как время
+        new() { Name = Loc.T("MAC-адреса"), Color = "#FF66FF", IgnoreCase = false,
+            Pattern = @"\b(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\b" },
+        new() { Name = Loc.T("Пояснения"), Color = "#4FD8E8",
+            Pattern = @"\b(information|description|summary|details?)\b" },
+    };
+
     /// <summary>Набор правил по умолчанию; порядок важен: при пересечении побеждает правило выше в списке.</summary>
-    public static List<HighlightRule> Defaults() => new()
+    public static List<HighlightRule> Defaults()
+    {
+        var rules = Core();
+        rules.InsertRange(Math.Min(4, rules.Count), Statuses());
+        return rules;
+    }
+
+    private static List<HighlightRule> Core() => new()
     {
         // ссылки первыми: слова вроде error или IP внутри адреса не должны перебивать подсветку всей ссылки
         new() { Name = Loc.T("Ссылки"), Color = "#5599FF", Underline = true, IgnoreCase = false,

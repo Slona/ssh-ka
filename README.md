@@ -35,7 +35,7 @@ Website and downloads: https://sshka.slona.me
 - The cursor is a block: filled while the window and the terminal are active, and an empty outline when the window is in the background or focus is elsewhere. It does not blink.
 - The mouse pointer over the terminal is a text pointer (I-beam).
 - Text selected with the mouse is copied to the clipboard immediately (like PuTTY; can be turned off in settings). The text has a left margin of about half a character. Right-click pastes.
-- **Rule-based highlighting**: regular expressions with color, bold and underline (errors, warnings, success, links, IP addresses, dates, log levels).
+- **Rule-based highlighting**: regular expressions with color, bold and underline (errors, warnings, success, up/down states, links, IP and MAC addresses, dates, log levels).
   Rules are edited in Settings → Highlighting; their order sets priority. Text already colored by the server (`ls --color`) is left alone;
   rules are not applied in full-screen programs.
 - **Code highlighting in editors**, two ways:
