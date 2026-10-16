@@ -169,6 +169,10 @@ src/SshKa.App/
 Выпуск: `dotnet publish src/SshKa.App -c Release -r win-x64 --self-contained`, из результата убрать `*.pdb`, запаковать в `SSH-ka-win-x64.zip`
 и положить в `/var/www/sshka/download/`; в `site/index.html` обновить версию, размер и SHA-256.
 
+## Лицензия
+
+MIT, см. файл [LICENSE](LICENSE). Программой можно свободно пользоваться, менять её и распространять при условии сохранения уведомления об авторских правах.
+
 ## Обратная связь
 
 Ошибки и пожелания принимаются в разделе Issues репозитория: https://github.com/Slona/ssh-ka/issues. Сайт программы: https://sshka.slona.me.

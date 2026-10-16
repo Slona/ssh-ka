@@ -49,6 +49,8 @@ public sealed class AboutWindow : Window
         panel.Children.Add(Link("Сайт", "https://sshka.slona.me"));
         panel.Children.Add(Link("Исходный код, ошибки и пожелания (GitHub)", "https://github.com/Slona/ssh-ka"));
 
+        panel.Children.Add(Link("Лицензия MIT", "https://github.com/Slona/ssh-ka/blob/main/LICENSE"));
+
         var ok = new Button { Content = "OK", IsDefault = true, IsCancel = true, MinWidth = 80, HorizontalAlignment = HorizontalAlignment.Center, HorizontalContentAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 12, 0, 0) };
         ok.Click += (_, _) => Close();
         panel.Children.Add(ok);

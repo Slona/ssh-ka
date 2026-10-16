@@ -294,6 +294,8 @@ internal static class Strings
         ["ошибок"] = "errors",
         ["потеряно"] = "dropped",
 
+        ["Лицензия MIT"] = "MIT License",
+
         // безопасность
         ["Безопасность"] = "Security",
         ["Спрашивать мастер-пароль при каждом запуске"] = "Ask for the master password on every start",
