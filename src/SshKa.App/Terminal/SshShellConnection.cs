@@ -30,18 +30,45 @@ public sealed class SshShellConnection : IPtyConnection
 
     private readonly CancellationTokenSource _watch = new();
 
+    private static readonly TimeSpan ProbeInterval = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(5);
+    private const int ProbeFailuresToDrop = 2;
+
+    /// <summary>
+    /// Следит за тем, что сервер ещё отвечает. Системное keepalive само по себе не помогает: оборванный TCP-канал
+    /// Windows считает живым минутами. Поэтому раз в несколько секунд просим сервер выполнить пустую команду
+    /// по отдельному каналу: любой ответ (даже отказ) значит «жив», полное молчание два раза подряд — соединение мёртво.
+    /// </summary>
     private async Task WatchAsync()
     {
+        var silent = 0;
         try
         {
-            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(3));
+            using var timer = new PeriodicTimer(ProbeInterval);
             while (await timer.WaitForNextTickAsync(_watch.Token))
             {
                 if (Volatile.Read(ref _exited) != 0) return;
                 if (!_client.IsConnected)
                 {
-                    RaiseExited();
+                    Drop();
                     return;
+                }
+
+                switch (await ProbeAsync())
+                {
+                    case Probe.Alive:
+                        silent = 0;
+                        break;
+                    case Probe.Dead:
+                        Drop();
+                        return;
+                    case Probe.Silent:
+                        if (++silent >= ProbeFailuresToDrop)
+                        {
+                            Drop();
+                            return;
+                        }
+                        break;
                 }
             }
         }
@@ -49,6 +76,53 @@ public sealed class SshShellConnection : IPtyConnection
         {
             // соединение закрыто нами
         }
+    }
+
+    private enum Probe { Alive, Silent, Dead }
+
+    private async Task<Probe> ProbeAsync()
+    {
+        var work = Task.Run(() =>
+        {
+            using var cmd = _client.CreateCommand("true");
+            cmd.CommandTimeout = ProbeTimeout;
+            cmd.Execute();
+        });
+
+        try
+        {
+            if (await Task.WhenAny(work, Task.Delay(ProbeTimeout + TimeSpan.FromSeconds(2))) != work)
+            {
+                _ = work.ContinueWith(t => _ = t.Exception, TaskContinuationOptions.OnlyOnFaulted); // чтобы не было необработанного исключения
+                return Probe.Silent;
+            }
+            await work;
+            return Probe.Alive;
+        }
+        catch (Exception ex)
+        {
+            return ex switch
+            {
+                Renci.SshNet.Common.SshOperationTimeoutException => Probe.Silent,
+                Renci.SshNet.Common.SshConnectionException => Probe.Dead,
+                System.Net.Sockets.SocketException => Probe.Dead,
+                ObjectDisposedException => Probe.Dead,
+                IOException => Probe.Dead,
+                // сервер ответил отказом (например, запрещено выполнять команды) — значит, он жив
+                _ => Probe.Alive,
+            };
+        }
+    }
+
+    /// <summary>Соединение признано мёртвым: сообщаем об окончании сеанса и закрываем сокет в фоне.</summary>
+    private void Drop()
+    {
+        RaiseExited();
+        _ = Task.Run(() =>
+        {
+            try { _shell.Dispose(); } catch { }
+            try { _client.Dispose(); } catch { }
+        });
     }
 
     public SshClient Client => _client;
