@@ -1,187 +1,187 @@
-﻿# SSH-ka
+# SSH-ka
 
-[English](README.en.md) | **Русский**
+**English** | [Русский](README.ru.md)
 
-Бесплатный SSH/Telnet-клиент для рабочего стола в духе MobaXterm. Только то, что нужно в повседневной работе:
-сессии с папками, терминал с подсветкой, проводник с SFTP/SCP, панель состояния сервера.
+A free SSH/Telnet client for the desktop, in the spirit of MobaXterm. Only what you need day to day:
+session folders, a terminal with highlighting, an SFTP/SCP file explorer and a server status bar.
 
-Стек: C# / .NET 10, Avalonia 12 (кроссплатформенный интерфейс; разрабатывается и проверяется под Windows).
+Stack: C# / .NET 10, Avalonia 12 (cross-platform UI; developed and tested on Windows).
 
-Сайт и загрузка: https://sshka.slona.me
+Website and downloads: https://sshka.slona.me
 
-## Возможности
+## Features
 
-**Подключения**
-- SSH и Telnet, каждое подключение в своей вкладке; на вкладке есть кнопка закрытия.
-- Вход по логину и паролю или по приватному ключу (с пассфразой). Если пароль в сессии не сохранён, он запрашивается при подключении.
-  Вход по паролю работает и через keyboard-interactive (VMware ESXi, серверы с PAM).
-- Локальный терминал (PowerShell) во вкладке: пункт «Локальный терминал» в меню по правой кнопке на дереве сессий.
-- Проверка ключей серверов, как в OpenSSH: при первом подключении показывается отпечаток и задаётся вопрос,
-  при изменении ключа выводится красное предупреждение о возможной подмене (кнопка по умолчанию — «Отмена»).
+**Connections**
+- SSH and Telnet, each connection in its own tab; every tab has a close button.
+- Login with a user name and password or with a private key (with a passphrase). If the password is not saved in the session, it is asked on connect.
+  Password login also works through keyboard-interactive (VMware ESXi, servers with PAM).
+- A local terminal (PowerShell) in a tab: the "Local terminal" item in the session tree's context menu.
+- Host key verification like in OpenSSH: on the first connection the fingerprint is shown and confirmation is requested;
+  if the key changes, a red warning about a possible man-in-the-middle is shown (the default button is "Cancel").
 
-**Сессии**
-- Дерево сессий в левой панели, папки любой вложенности, количество не ограничено. Папки с жёлтыми иконками, после имени сессии в скобках её логин.
-- Сессия с открытой вкладкой подсвечивается зелёным.
-- Сессии и папки перетаскиваются мышью: выше, ниже или внутрь папки (цель показывается линией или рамкой). Какие папки раскрыты, запоминается.
-- Контекстное меню: подключиться, новая сессия, новая папка, локальный терминал, изменить, дублировать, удалить. Двойной клик открывает вкладку.
-- Всё хранится в одном зашифрованном файле, доступ по мастер-паролю (см. «Данные и безопасность»).
-- **Импорт** (иконка в нижней строке левой панели): из MobaXterm (`.mxtsessions` или `MobaXterm.ini`), из PuTTY (реестр Windows), из `~/.ssh/config`.
-  Импортированное попадает в отдельную папку. Пароли не импортируются: MobaXterm и PuTTY хранят их отдельно и защищённо.
+**Sessions**
+- A session tree in the left panel, folders of any depth, no limit on the number of sessions. Folders have yellow icons, and the login is shown in parentheses after the session name.
+- A session with an open tab is highlighted in green.
+- Sessions and folders can be dragged with the mouse: above, below or into a folder (the target is shown with a line or a frame). Which folders are expanded is remembered.
+- Context menu: connect, new session, new folder, local terminal, edit, duplicate, delete. Double-click opens a tab.
+- Everything is stored in one encrypted file protected by a master password (see "Data and security").
+- **Import** (the icon in the bottom row of the left panel): from MobaXterm (`.mxtsessions` or `MobaXterm.ini`), from PuTTY (Windows registry) and from `~/.ssh/config`.
+  Imported sessions go into a separate folder. Passwords are not imported: MobaXterm and PuTTY store them separately and protected.
 
-**Терминал**
-- Эмулятор xterm (цвета ANSI/256/truecolor, прокрутка, выделение, vim/htop/mc и т. п.) на базе `Iciclecreek.Avalonia.Terminal`.
-- Шрифты простые системные: интерфейс Segoe UI 12, терминал Consolas 14 обычного начертания. Шрифт и размер меняются в «Настройки → Терминал».
-  «Жирный» от сервера по умолчанию показывается яркими цветами (как в PuTTY), настоящее жирное начертание включается в настройках.
-- Курсор — блок: залитый, пока окно и терминал активны, и пустой контур, когда окно в фоне или фокус в другом месте. Он не мигает.
-- Над окном терминала указатель мыши — текстовый (I-beam).
-- Выделенный мышью текст сразу копируется в буфер обмена (как в PuTTY; отключается в настройках). Слева у текста отступ около полсимвола. Правая кнопка вставляет из буфера.
-- **Подсветка по правилам**: регулярные выражения с цветом, жирным и подчёркиванием (ошибки, предупреждения, успех, ссылки, IP-адреса, даты, уровни логов).
-  Правила редактируются в «Настройки → Подсветка», порядок задаёт приоритет. Текст, который сервер раскрасил сам (`ls --color`), не трогается;
-  в полноэкранных программах правила не применяются.
-- **Подсветка кода в редакторах**, два способа:
-  1. *На сервере*: кнопка «🎨 Подсветка в редакторах…» проверяет vim и nano и, после подтверждения, дописывает `syntax on` в `~/.vimrc`
-     и подключение правил в `~/.nanorc` (копия прежнего файла сохраняется как `.sshka-bak`).
-  2. *На клиенте*: приложение определяет редактор на переднем плане и файл, по расширению выбирает язык и раскрашивает код само.
-     Если редактор красит сам, клиент ничего не добавляет. Галочка в «Настройки → Подсветка».
+**Terminal**
+- An xterm emulator (ANSI/256/truecolor, scrollback, selection, vim/htop/mc and so on) based on `Iciclecreek.Avalonia.Terminal`.
+- Plain system fonts: Segoe UI 12 for the interface, Consolas 14 regular weight for the terminal. Font and size can be changed in Settings → Terminal.
+  The server's "bold" is shown with bright colors by default (like PuTTY); real bold can be enabled in settings.
+- The cursor is a block: filled while the window and the terminal are active, and an empty outline when the window is in the background or focus is elsewhere. It does not blink.
+- The mouse pointer over the terminal is a text pointer (I-beam).
+- Text selected with the mouse is copied to the clipboard immediately (like PuTTY; can be turned off in settings). The text has a left margin of about half a character. Right-click pastes.
+- **Rule-based highlighting**: regular expressions with color, bold and underline (errors, warnings, success, links, IP addresses, dates, log levels).
+  Rules are edited in Settings → Highlighting; their order sets priority. Text already colored by the server (`ls --color`) is left alone;
+  rules are not applied in full-screen programs.
+- **Code highlighting in editors**, two ways:
+  1. *On the server*: the "🎨 Highlighting in editors…" button checks vim and nano and, after confirmation, appends `syntax on` to `~/.vimrc`
+     and the rule include to `~/.nanorc` (a copy of the previous file is kept as `.sshka-bak`).
+  2. *On the client*: the app detects the foreground editor and file, picks the language by extension and colors the code itself.
+     If the editor colors by itself, the client adds nothing. A checkbox in Settings → Highlighting.
 
-**Завершение сеанса**
-- Когда соединение закрылось (выход, обрыв, закрытие сервером), в том же окне терминала появляется сообщение «Сеанс завершён» и подсказки:
-  **Enter** закрывает вкладку, **R** перезапускает сеанс на том же месте, **S** сохраняет вывод терминала в текстовый файл.
+**When a session ends**
+- When the connection closes (exit, drop, closed by the server), a "Session stopped" message with hints appears in the same terminal window:
+  **Enter** closes the tab, **R** restarts the session in the same place, **S** saves the terminal output to a text file.
 
-**Окно и верхняя панель**
-- Меню по правой кнопке на названии вкладки: «Копировать вкладку» (новое подключение той же сессии рядом), «Закрыть вкладку», «Сохранить вывод терминала».
-- Крупные кнопки с круглыми иконками: **Сессия** (создать), **Настройки**, **Разделить**, **О программе**, **Выход** (с подтверждением).
-- **Разделить**: в окне показываются одна, две (рядом) или четыре (2×2) области, в каждой своя вкладка. Нажатая на полосе вкладка попадает
-  в активную область (выделена синей рамкой); активной область становится по щелчку.
-- **Настройки**: язык интерфейса (русский или English; по умолчанию язык системы: русский, иначе английский; меняется после перезапуска), шрифт и размер терминала, жирное начертание,
-  копирование при выделении, подсветка и её правила, безопасность (мастер-пароль).
-- В нижней строке левой панели: переключатель «Сессии / Проводник», справа импорт сессий, кнопка мониторинга сервера (нажата — панель состояния показана)
-  и кнопка «свернуть/развернуть панель» (свёрнутая панель остаётся узкой полоской с теми же кнопками).
+**Window and top bar**
+- Context menu on a tab title: "Duplicate tab" (a new connection of the same session next to it), "Close tab", "Save terminal output".
+- Large buttons with round icons: **Session** (create), **Settings**, **Split**, **About**, **Exit** (with confirmation).
+- **Split**: the window shows one, two (side by side) or four (2×2) panes, each with its own tab. A tab clicked on the tab bar goes into the
+  active pane (marked with a blue frame); a pane becomes active when clicked.
+- **Settings**: interface language (Russian or English; the system language by default: Russian if the system is Russian, English otherwise; applies after a restart), terminal font and size, bold,
+  copy on select, highlighting and its rules, security (master password).
+- In the bottom row of the left panel: the "Sessions / Explorer" switch; on the right, session import, the server monitor button (pressed means the status bar is shown)
+  and the "collapse/expand panel" button (a collapsed panel stays as a narrow strip with the same buttons).
 
-**Проводник** (левая панель; кнопки-иконки внизу переключают её между «Сессии» и «Проводник», у каждой SSH-вкладки свой проводник)
-- Таблица: имя, размер, дата изменения, владелец (колонка прав скрыта, права видны в окне «Изменить права»). Сортировка по клику на заголовок, каталоги всегда сверху.
-  Ширина каждой колонки меняется мышью, таблица прокручивается по горизонтали.
-  Строка `..` вверху ведёт на уровень выше.
-- Панель инструментов из иконок с подсказками: вверх, обновить, скачать, загрузить файлы, загрузить папку, создать папку, переименовать, права, удалить.
-- Меню по правой кнопке на файлах и папках: скачать, загрузить сюда, переименовать, изменить права, удалить, новая папка, обновить.
-- **Изменение прав**: окно с чекбоксами «чтение, запись, выполнение» для владельца, группы и остальных, строкой `rw-r--r--` и восьмеричным кодом.
-- Переход по пути (понимает `~`), скачивание и загрузка файлов и папок (рекурсивно); выбор нескольких элементов.
-- Протокол передачи выбирается в панели: **SFTP** или **SCP**. Для SCP список файлов получается командой `ls` (нужен GNU ls).
-- Опция **«Следовать за терминалом»**: панель сама переходит в каталог, в котором находится шелл на сервере. Для этого ничего не вводится в терминал.
-- Ход загрузки и скачивания показывается в самой нижней строке окна: имя файла, полоса с процентами (треть ширины окна, по центру) и кнопка отмены. Отменённая передача не оставляет недокачанного файла.
-- При совпадении имён задаётся вопрос: заменить, пропустить, заменить все, пропустить все, отмена.
+**Explorer** (the left panel; the icon buttons at the bottom switch it between "Sessions" and "Explorer"; every SSH tab has its own explorer)
+- A table: name, size, modification date, owner (the permissions column is hidden; permissions are visible in the "Change permissions" window). Click a header to sort; folders are always on top.
+  Each column can be resized with the mouse, and the table scrolls horizontally.
+  A `..` row at the top goes one level up.
+- A toolbar of icons with tooltips: up, refresh, download, upload files, upload folder, new folder, rename, permissions, delete.
+- A context menu on files and folders: download, upload here, rename, change permissions, delete, new folder, refresh.
+- **Changing permissions**: a window with read/write/execute checkboxes for owner, group and others, an `rw-r--r--` string and an octal code.
+- Path navigation (understands `~`), downloading and uploading files and folders (recursively); multiple selection.
+- The transfer protocol is chosen in the panel: **SFTP** or **SCP**. For SCP the file list is obtained with `ls` (GNU ls is required).
+- The **"Follow the terminal"** option: the panel moves to the directory the shell is in on the server by itself. Nothing is typed into the terminal for this.
+- The progress of uploads and downloads is shown in the bottom strip of the window: the file name, a percentage bar (a third of the window width, centered) and a cancel button. A cancelled transfer leaves no partial file behind.
+- On a name conflict a question is asked: replace, skip, replace all, skip all, cancel.
 
-**Панель состояния сервера** (внизу SSH-вкладки)
-- Имя хоста, загрузка CPU с мини-графиком, RAM, скорость отдачи и загрузки по сети, аптайм, заполнение дисков (≥90% выделяется красным).
-- У каждого показателя свой значок. Если задержать указатель на показателе на полсекунды, появляется подсказка: имя хоста и версия ядра; загрузка CPU; RAM (всего, занято, доступно, кэш, буферы);
-  по каждому сетевому интерфейсу отправлено или получено, ошибки, потери; аптайм в секундах; вывод `df -h`. Показатель можно скрыть кнопкой мониторинга в левой нижней строке.
-- Работает на Linux. Раз в 2 секунды выполняется один короткий скрипт по отдельному каналу, на сервер ничего не устанавливается.
+**Server status bar** (at the bottom of an SSH tab)
+- Host name, CPU load with a mini graph, RAM, network upload and download speed, uptime, disk usage (≥90% is shown in red).
+- Every indicator has its own icon. Hold the pointer over one for half a second to see a tooltip: host name and kernel version; CPU load; RAM (total, used, available, cached, buffers);
+  per network interface sent or received, errors, drops; uptime in seconds; the output of `df -h`. The indicators can be hidden with the monitor button in the bottom left row.
+- Works on Linux. Every 2 seconds one short script runs over a separate channel; nothing is installed on the server.
 
-## Сборка и запуск
+## Build and run
 
-Нужен [.NET SDK 10](https://dotnet.microsoft.com/download). На Windows:
+You need the [.NET SDK 10](https://dotnet.microsoft.com/download). On Windows:
 
 ```powershell
 winget install Microsoft.DotNet.SDK.10
 ```
 
-Если в системе не настроен источник пакетов NuGet:
+If the NuGet package source is not configured:
 
 ```powershell
 dotnet nuget add source https://api.nuget.org/v3/index.json -n nuget.org
 ```
 
-Сборка и запуск из корня проекта:
+Build and run from the project root:
 
 ```powershell
 dotnet build src/SshKa.App
 dotnet run --project src/SshKa.App
 ```
 
-При первом запуске приложение предложит придумать мастер-пароль (не короче 8 символов). Восстановить его нельзя.
-После первого ввода ключ запоминается на этом компьютере, и при следующих запусках пароль не спрашивается (см. «Данные и безопасность»).
+On the first start the app asks you to choose a master password (at least 8 characters). It cannot be recovered.
+After the first entry the key is remembered on this computer and the password is not asked on later starts (see "Data and security").
 
-## Данные и безопасность
+## Data and security
 
-Всё лежит в `%APPDATA%\SshKa\`:
+Everything is stored in `%APPDATA%\SshKa\`:
 
-| Файл | Содержимое |
+| File | Contents |
 |---|---|
-| `vault.json` | Дерево сессий, логины, пароли, пассфразы. Шифруется целиком: ключ из мастер-пароля через Argon2id (64 МБ, 3 прохода), шифр AES-256-GCM. Запись атомарная, рядом остаётся `vault.json.bak`. |
-| `settings.json` | Настройки интерфейса, правила подсветки. Без секретов, не шифруется. |
-| `vault.key` | Ключ хранилища, защищённый Windows (DPAPI, учётная запись пользователя). Есть, пока не включено «Спрашивать мастер-пароль при каждом запуске». Вне Windows не создаётся. |
-| `known_hosts.json` | Запомненные отпечатки ключей серверов (SHA256). Не шифруется. |
+| `vault.json` | The session tree, logins, passwords, passphrases. Encrypted as a whole: a key derived from the master password with Argon2id (64 MB, 3 passes), AES-256-GCM cipher. Writes are atomic, and `vault.json.bak` is kept next to it. |
+| `settings.json` | Interface settings, highlighting rules. No secrets, not encrypted. |
+| `vault.key` | The vault key protected by Windows (DPAPI, the user account). Present unless "Ask for the master password on every start" is enabled. Not created outside Windows. |
+| `known_hosts.json` | Remembered server key fingerprints (SHA256). Not encrypted. |
 
-Что важно знать:
-- Утеряв мастер-пароль, вы теряете доступ к сохранённым сессиям.
-- «Настройки → Безопасность»: сменить мастер-пароль, проверить его и выбрать, спрашивать ли пароль при каждом запуске. Пока ключ запомнен, любой, кто работает под вашей учётной записью Windows, открывает хранилище без пароля; если это не подходит, включите вопрос при запуске.
-- Пути к файлам ключей хранятся, сами ключи нет. Приватные ключи остаются там, где лежали.
-- При SCP имена файлов экранируются для оболочки сервера (защита от инъекции команд).
-- Отпечатки серверов хранятся без шифрования: это публичные данные, но подмена файла ослабит проверку.
+Things worth knowing:
+- If you lose the master password, you lose access to the saved sessions.
+- Settings → Security: change the master password, check it and choose whether to ask for it on every start. While the key is remembered, anyone working under your Windows account opens the vault without a password; if that is not acceptable, enable the prompt on start.
+- Paths to key files are stored, the keys themselves are not. Private keys stay where they were.
+- With SCP, file names are escaped for the server shell (protection against command injection).
+- Server fingerprints are stored unencrypted: they are public data, but tampering with the file would weaken verification.
 
-## Устройство кода
+## Code layout
 
 ```
 src/SshKa.App/
-  Models/      SessionItem: узел дерева (папка или сессия)
-  Storage/     SessionVault (шифрованное хранилище), AppSettings, HostKeyVerifier
-  Terminal/    SshShellConnection, TelnetConnection: соединения под интерфейс IPtyConnection терминала;
-               HighlightingPtyConnection (прослойка подсветки), ShellCwdTracker (каталог и редактор на сервере),
-               ServerStatsCollector (панель состояния), EditorSetup (подсветка vim/nano на сервере)
-  Highlight/   правила и движок подсветки, HighlightingStream (разбор потока), CodeLanguages (языки кода)
-  Files/       IRemoteFileSystem и реализации SftpFileSystem, ScpFileSystem; PosixPath; RemoteEntry
+  Models/      SessionItem: a tree node (folder or session)
+  Storage/     SessionVault (encrypted storage), AppSettings, HostKeyVerifier
+  Terminal/    SshShellConnection, TelnetConnection: connections implementing the terminal's IPtyConnection;
+               HighlightingPtyConnection (highlighting layer), ShellCwdTracker (directory and editor on the server),
+               ServerStatsCollector (status bar), EditorSetup (vim/nano highlighting on the server)
+  Highlight/   highlighting rules and engine, HighlightingStream (stream parser), CodeLanguages (code languages)
+  Files/       IRemoteFileSystem and the SftpFileSystem, ScpFileSystem implementations; PosixPath; RemoteEntry
   Import/      MobaXtermImporter, PuttyImporter, SshConfigImporter
-  Views/       MainWindow (окно, области терминалов), SessionView (вкладка SSH), FilePanel (проводник), ServerStatusBar,
-               SettingsWindow, AboutWindow, TerminalFactory (шрифт, отступ, копирование при выделении), диалоги
-  Localization/ Loc (перевод по русскому тексту-ключу), Strings (английский словарь)
-  Assets/      иконка приложения (кот в окне терминала)
-  Styles/      Theme.axaml (шрифты, цвета, вкладки, таблицы, кнопки-иконки), Icons.axaml (векторные иконки)
+  Views/       MainWindow (window, terminal panes), SessionView (SSH tab), FilePanel (explorer), ServerStatusBar,
+               SettingsWindow, AboutWindow, TerminalFactory (font, margin, copy on select), dialogs
+  Localization/ Loc (translation keyed by the Russian text), Strings (English dictionary)
+  Assets/      the application icon (a cat in a terminal window)
+  Styles/      Theme.axaml (fonts, colors, tabs, tables, icon buttons), Icons.axaml (vector icons)
 ```
 
-Ключевая идея: терминальный контрол принимает любое соединение, реализующее `IPtyConnection` (читающий и пишущий потоки).
-Поэтому SSH, Telnet и поток подсветки подключаются к одному и тому же терминалу одинаково.
+The key idea: the terminal control accepts any connection that implements `IPtyConnection` (a reading and a writing stream).
+So SSH, Telnet and the highlighting stream plug into the same terminal in the same way.
 
-Зависимости: Avalonia 12, SSH.NET, Iciclecreek.Avalonia.Terminal (XTerm.NET, Porta.Pty), Konscious.Security.Cryptography.Argon2, CommunityToolkit.Mvvm.
+Dependencies: Avalonia 12, SSH.NET, Iciclecreek.Avalonia.Terminal (XTerm.NET, Porta.Pty), Konscious.Security.Cryptography.Argon2, CommunityToolkit.Mvvm.
 
-## Известные ограничения
+## Known limitations
 
-- **Тема**: только светлая (фон чуть серый). Переключателя тем нет.
-- **Язык**: меняется после перезапуска. Названия правил подсветки, уже сохранённые в настройках на русском, остаются как есть (стандартные имена переводятся).
-- **Разделение окна**: вкладка, ушедшая из области, продолжает работать, но не показывается, пока её не выберут на полосе вкладок.
-- **Жирное начертание**: «жирный» от сервера заменяется яркими цветами; если escape-последовательность разрезана границей пакетов, одна такая последовательность может пройти как есть.
-- **Telnet**: логин и пароль вводятся вручную в терминале, автоматической подстановки нет. Проводника и панели состояния у Telnet нет.
-- **Следование за терминалом** показывает каталог корневого шелла: после `sudo -i` или `su` панель не переедет. Требует Linux с `ps` и `/dev/pts`.
-- **Проводник** показывает список каталога, а не раскрывающееся дерево. Перетаскивание файлов из Проводника Windows в панель не поддерживается.
-- Особые права (setuid, setgid, sticky) задаются через `chmod` по SSH-соединению, поэтому требуют, чтобы оно было открыто.
-- **SCP-режим** требует GNU `ls` на сервере (на BusyBox используйте SFTP).
-- **Подсветка**: слово, разрезанное границей двух пакетов данных, может остаться без цвета. Клиентская подсветка кода построчная
-  (многострочные комментарии и строки не отслеживаются), под `sudo vim` перерисовку редактора запросить не удаётся.
-- **Импорт из MobaXterm** разработан по формату экспорта, но проверен на самостоятельно составленном образце. Если что-то перенеслось не так, сообщите.
-- **Ключи PuTTY `.ppk`**: путь импортируется, но открытие зависит от версии формата.
-- Перенос сессий между компьютерами сейчас возможен только копированием `vault.json` вместе с мастер-паролем.
-- В репозитории нет автоматических тестов: проверки делались одноразовыми программами и в отчёт не вошли.
+- **Theme**: light only (a slightly gray background). There is no theme switch.
+- **Language**: changes after a restart. Highlighting rule names already saved in Russian in the settings stay as they are (standard names are translated).
+- **Split window**: a tab that left a pane keeps running but is not shown until it is selected on the tab bar.
+- **Bold**: the server's "bold" is replaced with bright colors; if an escape sequence is split by a packet boundary, one such sequence may pass through as is.
+- **Telnet**: the login and password are typed manually in the terminal; there is no automatic fill. Telnet has no explorer and no status bar.
+- **Following the terminal** shows the directory of the root shell: after `sudo -i` or `su` the panel will not follow. It needs Linux with `ps` and `/dev/pts`.
+- **The explorer** shows a directory listing, not an expandable tree. Dragging files from Windows Explorer into the panel is not supported.
+- Special permissions (setuid, setgid, sticky) are set with `chmod` over the SSH connection, so that connection must be open.
+- **SCP mode** needs GNU `ls` on the server (use SFTP on BusyBox).
+- **Highlighting**: a word split by a boundary between two data packets may stay uncolored. Client-side code highlighting works line by line
+  (multi-line comments and strings are not tracked), and under `sudo vim` a redraw of the editor cannot be requested.
+- **MobaXterm import** was built from the export format but tested on a self-made sample. If something transferred incorrectly, please report it.
+- **PuTTY `.ppk` keys**: the path is imported, but opening depends on the format version.
+- Moving sessions between computers is currently only possible by copying `vault.json` together with the master password.
+- There are no automated tests in the repository: checks were done with throwaway programs that are not included.
 
-## Планы
+## Plans
 
-- Цветовая метка сессии (например, красная для боевых серверов), тёмная тема, кнопка новой вкладки.
-- Drag-and-drop файлов из Проводника Windows в панель файлов.
-- Автовход по Telnet, раскрывающееся дерево каталогов, управление известными хостами из интерфейса.
-- Автоматические тесты (разбор Telnet и потока подсветки, импортёры, хранилище).
+- A color label for sessions (for example, red for production servers), a dark theme, a new-tab button.
+- Drag and drop of files from Windows Explorer into the file panel.
+- Telnet auto-login, an expandable directory tree, managing known hosts from the interface.
+- Automated tests (Telnet and highlighting stream parsing, importers, the vault).
 
-## Сайт и выпуск
+## Website and releases
 
-Лендинг лежит в `site/` и опубликован на https://sshka.slona.me (nginx, каталог `/var/www/sshka`).
-Выпуск: `dotnet publish src/SshKa.App -c Release -r win-x64 --self-contained`, из результата убрать `*.pdb`, запаковать в `SSH-ka-win-x64.zip`
-и положить в `/var/www/sshka/download/`; в `site/index.html` обновить версию, размер и SHA-256.
+The landing page is in `site/` and is published at https://sshka.slona.me (nginx, directory `/var/www/sshka`).
+Release: `dotnet publish src/SshKa.App -c Release -r win-x64 --self-contained`, remove `*.pdb` from the result, pack it into `SSH-ka-win-x64.zip`
+and put it into `/var/www/sshka/download/`; in `site/index.html` update the version, size and SHA-256.
 
-## Лицензия
+## License
 
-MIT, см. файл [LICENSE](LICENSE). Программой можно свободно пользоваться, менять её и распространять при условии сохранения уведомления об авторских правах.
+MIT, see [LICENSE](LICENSE). You are free to use, change and distribute the program as long as the copyright notice is kept.
 
-## Обратная связь
+## Feedback
 
-Ошибки и пожелания принимаются в разделе Issues репозитория: https://github.com/Slona/ssh-ka/issues. Сайт программы: https://sshka.slona.me.
+Bugs and feature requests are welcome in the repository's Issues: https://github.com/Slona/ssh-ka/issues. The program's website: https://sshka.slona.me.
 
-## Версии
+## Versions
 
-Версия записывается в `src/SshKa.App/SshKa.App.csproj` (`<Version>`), третье число — номер сборки; он растёт с каждой выданной сборкой и показывается в окне «О программе».
+The version is stored in `src/SshKa.App/SshKa.App.csproj` (`<Version>`); the third number is the build number. It grows with every delivered build and is shown in the About window.

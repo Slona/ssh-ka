@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using Porta.Pty;
 using Renci.SshNet;
 
@@ -20,6 +20,35 @@ public sealed class SshShellConnection : IPtyConnection
         _shell = client.CreateShellStream("xterm-256color", (uint)cols, (uint)rows, 0, 0, 4096);
         _shell.Closed += (_, _) => RaiseExited();
         _client.ErrorOccurred += (_, _) => RaiseExited();
+
+        // Сервер, ушедший в перезагрузку или пропавший из сети, не всегда закрывает соединение. Пока по нему ничего не
+        // передаётся, обрыв незаметен: поэтому раз в 10 секунд отправляем служебное сообщение (оно заодно не даёт
+        // сетевым устройствам закрыть простаивающее соединение) и проверяем, что соединение ещё живо.
+        _client.KeepAliveInterval = TimeSpan.FromSeconds(10);
+        _ = Task.Run(WatchAsync);
+    }
+
+    private readonly CancellationTokenSource _watch = new();
+
+    private async Task WatchAsync()
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(3));
+            while (await timer.WaitForNextTickAsync(_watch.Token))
+            {
+                if (Volatile.Read(ref _exited) != 0) return;
+                if (!_client.IsConnected)
+                {
+                    RaiseExited();
+                    return;
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // соединение закрыто нами
+        }
     }
 
     public SshClient Client => _client;
@@ -51,9 +80,14 @@ public sealed class SshShellConnection : IPtyConnection
 
     public void Kill()
     {
-        try { _shell.Dispose(); } catch { /* уже закрыт */ }
-        try { _client.Dispose(); } catch { /* уже закрыт */ }
+        // сначала сообщаем об окончании, потом закрываем: закрытие оборванного соединения может занять время
         RaiseExited();
+        _watch.Cancel();
+        _ = Task.Run(() =>
+        {
+            try { _shell.Dispose(); } catch { /* уже закрыт */ }
+            try { _client.Dispose(); } catch { /* уже закрыт */ }
+        });
     }
 
     public void Dispose() => Kill();
