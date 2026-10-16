@@ -17,6 +17,7 @@
             <SolidColorBrush x:Key="PanelBackground" Color="{StaticResource PanelBackgroundColor}" />
             <SolidColorBrush x:Key="LineBrush" Color="{StaticResource LineColor}" />
             <SolidColorBrush x:Key="ConnectedBrush" Color="#CDEBC9" />
+            <SolidColorBrush x:Key="StoppedBrush" Color="#F4C7C3" />
             <SolidColorBrush x:Key="AccentBrush" Color="#3B78C2" />
 
             <!-- Шрифты: простые системные -->

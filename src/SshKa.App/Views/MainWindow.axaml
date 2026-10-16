@@ -125,6 +125,7 @@
                             <TreeDataTemplate DataType="m:SessionItem" ItemsSource="{Binding Children}">
                                 <Border Name="RowBorder" Classes="row"
                                         Classes.connected="{Binding IsConnected}"
+                                        Classes.stopped="{Binding IsStopped}"
                                         Classes.dropBefore="{Binding IsDropBefore}"
                                         Classes.dropAfter="{Binding IsDropAfter}"
                                         Classes.dropInto="{Binding IsDropInto}">

@@ -1,6 +1,7 @@
 ﻿<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:f="using:SshKa.App.Files"
+             xmlns:v="using:SshKa.App.Views"
              x:Class="SshKa.App.Views.FilePanel">
 
     <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto" Background="{DynamicResource PanelBackground}">
@@ -68,7 +69,10 @@
                         <DataTemplate x:DataType="f:RemoteEntry">
                             <StackPanel Orientation="Horizontal" Spacing="6" Margin="6,0,0,0" VerticalAlignment="Center">
                                 <Path Classes="folder" IsVisible="{Binding IsDirectory}" />
-                                <Path Classes="file" IsVisible="{Binding !IsDirectory}" />
+                                <Path Classes="file" IsVisible="{Binding IsPlainFile}" />
+                                <Path Classes="kind" IsVisible="{Binding IsTypedFile}"
+                                      Data="{Binding Kind, Converter={x:Static v:FileKindIcon.Geometry}}"
+                                      Fill="{Binding Kind, Converter={x:Static v:FileKindIcon.Brush}}" />
                                 <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                             </StackPanel>
                         </DataTemplate>

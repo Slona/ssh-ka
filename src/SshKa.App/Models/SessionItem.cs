@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Text.Json.Serialization;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -51,12 +51,19 @@ public partial class SessionItem : ObservableObject
     [property: JsonIgnore]
     private int _connectionCount;
 
+    /// <summary>Сколько вкладок этой сессии открыто, но сеанс в них уже завершён; строка подсвечивается красным.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsStopped))]
+    [property: JsonIgnore]
+    private int _stoppedCount;
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsDropBefore), nameof(IsDropAfter), nameof(IsDropInto))]
     [property: JsonIgnore]
     private DropIndicator _dropIndicator;
 
     [JsonIgnore] public bool IsConnected => ConnectionCount > 0;
+    [JsonIgnore] public bool IsStopped => StoppedCount > 0;
     [JsonIgnore] public bool IsDropBefore => DropIndicator == DropIndicator.Before;
     [JsonIgnore] public bool IsDropAfter => DropIndicator == DropIndicator.After;
     [JsonIgnore] public bool IsDropInto => DropIndicator == DropIndicator.Into;

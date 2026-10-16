@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets/sshka.ico</ApplicationIcon>
-    <Version>0.2.3</Version>
+    <Version>0.2.4</Version>
     <Product>SSH-ka</Product>
     <AssemblyTitle>SSH-ka</AssemblyTitle>
   </PropertyGroup>

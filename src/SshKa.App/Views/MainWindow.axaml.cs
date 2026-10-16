@@ -144,9 +144,9 @@ public partial class MainWindow : Window
 
     private void OnExplorerMode(object? sender, RoutedEventArgs e) => SetLeftMode(explorer: true);
 
-    private void SetLeftMode(bool explorer)
+    private void SetLeftMode(bool explorer, bool expand = true)
     {
-        if (_collapsed) SetCollapsed(false); // выбрали раздел — панель разворачивается
+        if (_collapsed && expand) SetCollapsed(false); // выбрали раздел — панель разворачивается
         SessionsMode.IsChecked = !explorer;
         ExplorerMode.IsChecked = explorer;
         Tree.IsVisible = !explorer;
@@ -585,6 +585,8 @@ public partial class MainWindow : Window
         public required Action OnClose { get; init; }
         public Action? Restart { get; set; }
         public Action? Duplicate { get; set; }
+        public SessionItem? Session { get; set; }
+        public bool StoppedCounted { get; set; }
         public TerminalControl? Terminal { get; set; }
         public bool Stopped { get; set; }
     }
@@ -730,10 +732,14 @@ public partial class MainWindow : Window
             pane.Tab = null;
         }
         Tabs.Items.Remove(tab);
+        if (_states.TryGetValue(tab, out var closing) && closing is { StoppedCounted: true, Session: { } owner })
+            owner.StoppedCount--; // вкладка с завершённым сеансом закрыта — красная подсветка уходит
         _states.Remove(tab);
         tab.Tag = null;
         FillEmptyPanes();
         UpdateFrames();
+        // закрыли последнюю вкладку: проводнику показывать нечего, возвращаем список сессий
+        if (Tabs.Items.Count == 0 && ExplorerMode.IsChecked == true) SetLeftMode(explorer: false, expand: false);
         RefreshExplorer();
     }
 
@@ -852,6 +858,11 @@ public partial class MainWindow : Window
     {
         if (!_states.TryGetValue(tab, out var state) || state.Stopped) return;
         state.Stopped = true;
+        if (state.Session is { } session)
+        {
+            session.StoppedCount++;
+            state.StoppedCounted = true;
+        }
         try
         {
             // если программа умерла в полноэкранном режиме (vim), сначала возвращаем обычный экран и курсор
@@ -1010,6 +1021,7 @@ public partial class MainWindow : Window
         WireStopKeys(tab, terminal);
         _states[tab].Restart = () => RestartInPlace(tab, index => Connect(s, index));
         _states[tab].Duplicate = () => Connect(s, Tabs.Items.IndexOf(tab) + 1);
+        _states[tab].Session = s;
 
         try
         {

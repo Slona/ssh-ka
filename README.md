@@ -1,4 +1,4 @@
-# SSH-ka
+﻿# SSH-ka
 
 **English** | [Русский](README.ru.md)
 
@@ -21,7 +21,7 @@ Website and downloads: https://sshka.slona.me
 
 **Sessions**
 - A session tree in the left panel, folders of any depth, no limit on the number of sessions. Folders have yellow icons, and the login is shown in parentheses after the session name.
-- A session with an open tab is highlighted in green.
+- A session with an open tab is highlighted in green; if the session in that tab has ended (the tab is still open), it is highlighted in red.
 - Sessions and folders can be dragged with the mouse: above, below or into a folder (the target is shown with a line or a frame). Which folders are expanded is remembered.
 - Context menu: connect, new session, new folder, local terminal, edit, duplicate, delete. Double-click opens a tab.
 - Everything is stored in one encrypted file protected by a master password (see "Data and security").
@@ -61,7 +61,8 @@ Website and downloads: https://sshka.slona.me
 **Explorer** (the left panel; the icon buttons at the bottom switch it between "Sessions" and "Explorer"; every SSH tab has its own explorer)
 - A table: name, size, modification date, owner (the permissions column is hidden; permissions are visible in the "Change permissions" window). Click a header to sort; folders are always on top.
   Each column can be resized with the mouse, and the table scrolls horizontally.
-  A `..` row at the top goes one level up.
+  A `..` row at the top goes one level up. When the last tab is closed, the left panel returns from the explorer to the session list.
+- File icons depend on the type: archives, images, video, audio, documents, code, scripts, configs, keys, databases, logs, links.
 - A toolbar of icons with tooltips: up, refresh, download, upload files, upload folder, new folder, rename, permissions, delete.
 - A context menu on files and folders: download, upload here, rename, change permissions, delete, new folder, refresh.
 - **Changing permissions**: a window with read/write/execute checkboxes for owner, group and others, an `rw-r--r--` string and an octal code.
