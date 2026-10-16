@@ -303,6 +303,10 @@ internal static class Strings
 
         ["Нет ответа от {0}…"] = "No response from {0}…",
 
+        ["Поиск сессий…"] = "Search sessions…",
+        ["Ничего не найдено"] = "Nothing found",
+        ["Создать новую сессию и сразу подключиться"] = "Create a new session and connect right away",
+
         // безопасность
         ["Безопасность"] = "Security",
         ["Спрашивать мастер-пароль при каждом запуске"] = "Ask for the master password on every start",

@@ -188,6 +188,12 @@
         <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
     </Style>
 
+    <!-- результаты поиска сессий: плотные строки, как в дереве -->
+    <Style Selector="ListBoxItem">
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="0" />
+    </Style>
+
     <!-- ===== Дерево сессий ===== -->
     <Style Selector="TreeView">
         <Setter Property="Background" Value="{DynamicResource PanelBackground}" />

@@ -130,6 +130,7 @@ public partial class MainWindow : Window
 
     private void Save()
     {
+        RefreshSearch();
         try { _vault?.Save(); }
         catch (Exception ex) { StatusText.Text = Loc.F("Не удалось сохранить: {0}", ex.Message); }
     }
@@ -149,8 +150,8 @@ public partial class MainWindow : Window
         if (_collapsed && expand) SetCollapsed(false); // выбрали раздел — панель разворачивается
         SessionsMode.IsChecked = !explorer;
         ExplorerMode.IsChecked = explorer;
-        Tree.IsVisible = !explorer;
         ExplorerHost.IsVisible = explorer;
+        UpdateSessionsView();
         RefreshExplorer();
     }
 
@@ -341,7 +342,80 @@ public partial class MainWindow : Window
 
     // ---------- дерево сессий ----------
 
-    private SessionItem? Selected => Tree.SelectedItem as SessionItem;
+    // выбранная сессия: в списке результатов, пока идёт поиск, иначе в дереве
+    private SessionItem? Selected => IsSearching ? (SearchResults.SelectedItem as SearchHit)?.Item : Tree.SelectedItem as SessionItem;
+
+    private bool IsSearching => !string.IsNullOrWhiteSpace(SearchBox.Text);
+
+    private void UpdateSessionsView()
+    {
+        var sessions = SessionsMode.IsChecked == true;
+        var searching = IsSearching;
+        SearchBox.IsVisible = sessions;
+        Tree.IsVisible = sessions && !searching;
+        SearchResults.IsVisible = sessions && searching;
+        NoResults.IsVisible = sessions && searching && SearchResults.ItemCount == 0;
+    }
+
+    private void OnSearchChanged(object? sender, TextChangedEventArgs e) => RefreshSearch();
+
+    /// <summary>Пересчитывает результаты по тексту поиска: слова через пробел, все должны встретиться в имени, адресе, логине или пути.</summary>
+    private void RefreshSearch()
+    {
+        if (_vault is not null && IsSearching)
+        {
+            var words = SearchBox.Text!.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var hits = new List<SearchHit>();
+            void Walk(IEnumerable<SessionItem> level, string path)
+            {
+                foreach (var item in level)
+                {
+                    if (item.IsFolder)
+                    {
+                        Walk(item.Children, path.Length == 0 ? item.Name : path + " / " + item.Name);
+                        continue;
+                    }
+                    var haystack = string.Join(' ', item.Name, item.Host, item.Username, path);
+                    if (words.All(w => haystack.Contains(w, StringComparison.CurrentCultureIgnoreCase)))
+                        hits.Add(new SearchHit(item, path));
+                }
+            }
+            Walk(_vault.Root, "");
+            SearchResults.ItemsSource = hits;
+            if (hits.Count > 0) SearchResults.SelectedIndex = 0;
+        }
+        else
+        {
+            SearchResults.ItemsSource = null;
+        }
+        UpdateSessionsView();
+    }
+
+    private void OnSearchKeyDown(object? sender, KeyEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case Key.Escape:
+                SearchBox.Text = "";
+                e.Handled = true;
+                break;
+            case Key.Enter when Selected is { IsFolder: false } item:
+                Connect(item);
+                e.Handled = true;
+                break;
+            case Key.Down or Key.Up when SearchResults.ItemCount > 0:
+                // стрелки двигают выбор в результатах, не уводя курсор из поля
+                var step = e.Key == Key.Down ? 1 : -1;
+                SearchResults.SelectedIndex = Math.Clamp(SearchResults.SelectedIndex + step, 0, SearchResults.ItemCount - 1);
+                e.Handled = true;
+                break;
+        }
+    }
+
+    private void OnSearchDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (Selected is { IsFolder: false } item) Connect(item);
+    }
 
     /// <summary>Куда добавлять новый узел: в выбранную папку, рядом с выбранной сессией или в корень.</summary>
     private ObservableCollection<SessionItem> TargetCollection()
@@ -351,14 +425,22 @@ public partial class MainWindow : Window
         return _vault!.Root;
     }
 
-    private async void OnNewSession(object? sender, RoutedEventArgs e)
+    /// <summary>Пункт меню «Новая сессия»: только создаёт сессию в дереве.</summary>
+    private async void OnNewSession(object? sender, RoutedEventArgs e) => await CreateSessionAsync(connect: false);
+
+    /// <summary>Кнопка «Сессия» сверху: создаёт сессию и сразу открывает вкладку с подключением.</summary>
+    private async void OnNewSessionAndConnect(object? sender, RoutedEventArgs e) => await CreateSessionAsync(connect: true);
+
+    private async Task CreateSessionAsync(bool connect)
     {
         if (_vault is null) return;
         var item = new SessionItem();
         if (!await new SessionEditDialog(item).ShowDialog<bool>(this)) return;
+        if (IsSearching) SearchBox.Text = ""; // новая сессия должна быть видна в дереве
         if (Selected is { IsFolder: true } folder) folder.IsExpanded = true;
         TargetCollection().Add(item);
         Save();
+        if (connect) Connect(item);
     }
 
     private async void OnNewFolder(object? sender, RoutedEventArgs e)

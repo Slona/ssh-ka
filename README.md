@@ -21,6 +21,8 @@ Website and downloads: https://sshka.slona.me
 
 **Sessions**
 - A session tree in the left panel, folders of any depth, no limit on the number of sessions. Folders have yellow icons, and the login is shown in parentheses after the session name.
+- The **Session** button at the top creates a session and connects to it at once; the "New session" item of the tree menu only creates it.
+- A search box above the tree: type part of a name, host, login or folder (several words are allowed); the tree is replaced by a list of matches (Enter connects, ↑↓ move, Esc clears).
 - A session with an open tab is highlighted in green; if the session in that tab has ended (the tab is still open), it is highlighted in red.
 - Sessions and folders can be dragged with the mouse: above, below or into a folder (the target is shown with a line or a frame). Which folders are expanded is remembered.
 - Context menu: connect, new session, new folder, local terminal, edit, duplicate, delete. Double-click opens a tab.
