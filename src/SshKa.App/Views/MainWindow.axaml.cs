@@ -1181,6 +1181,8 @@ public partial class MainWindow : Window
             else
                 terminal.AttachConnection(new HighlightingPtyConnection(conn));
 
+            SyncSizeLater(conn, terminal);
+
             // Конец сеанса берём и от самого соединения: контрол терминала узнаёт об обрыве не всегда
             // (если чтение из мёртвого канала не завершилось, его событие не приходит).
             var attached = conn;
@@ -1221,6 +1223,30 @@ public partial class MainWindow : Window
                 try { terminal.Terminal.Write("\u001b[91m" + Loc.F("Ошибка: {0}", ex.Message) + "\u001b[0m\r\n"); } catch { }
                 MarkStopped(tab, terminal);
             }
+        }
+    }
+
+    /// <summary>
+    /// Соединение открывается с размером 120×30, а окно терминала у́же или шире. Как только раскладка готова, сообщаем серверу
+    /// настоящий размер, иначе строки на сервере переносятся по старой ширине (и после растягивания окна тоже).
+    /// </summary>
+    private void SyncSizeLater(IPtyConnection conn, TerminalControl terminal)
+    {
+        foreach (var delay in new[] { 250, 1000 })
+        {
+            DispatcherTimer.RunOnce(() =>
+            {
+                try
+                {
+                    var cols = terminal.Terminal.Cols;
+                    var rows = terminal.Terminal.Rows;
+                    if (cols > 0 && rows > 0 && conn.WaitForExit(0) == false) conn.Resize(cols, rows);
+                }
+                catch
+                {
+                    // соединение уже закрыто
+                }
+            }, TimeSpan.FromMilliseconds(delay));
         }
     }
 
