@@ -951,7 +951,7 @@ public partial class MainWindow : Window
         {
             // если программа умерла в полноэкранном режиме (vim), сначала возвращаем обычный экран и курсор
             var leave = terminal.Terminal.IsAlternateBufferActive ? "\u001b[?1049l" : "";
-            terminal.Terminal.Write(leave + "\u001b[?25h" + StoppedMessage());
+            Emit(terminal, leave + "\u001b[?25h" + StoppedMessage());
         }
         catch (Exception ex)
         {
@@ -1042,65 +1042,10 @@ public partial class MainWindow : Window
 
     private async void Connect(SessionItem s, int? position = null, ReuseTarget? reuse = null)
     {
-        Func<Task<IPtyConnection>> open;
-
-        if (s.Protocol == Protocol.Telnet)
-        {
-            open = async () => await TelnetConnection.ConnectAsync(s.Host, s.Port, 120, 30);
-        }
-        else
-        {
-            // пароль не сохранён — спрашиваем при подключении
-            var password = s.Password;
-            if (s.Auth == AuthKind.Password && password.Length == 0)
-            {
-                var asked = await Dialogs.AskText(this, "Пароль", Loc.F("Пароль для {0}@{1}", s.Username, s.Host), password: true);
-                if (asked is null) return;
-                password = asked;
-            }
-
-            open = () => Task.Run<IPtyConnection>(() =>
-            {
-                var methods = new List<AuthenticationMethod>();
-                if (s.Auth == AuthKind.Key)
-                {
-                    methods.Add(new PrivateKeyAuthenticationMethod(s.Username,
-                        new PrivateKeyFile(s.KeyPath, s.Passphrase.Length > 0 ? s.Passphrase : null)));
-                }
-                else
-                {
-                    methods.Add(new PasswordAuthenticationMethod(s.Username, password));
-                    // Многие серверы (VMware ESXi, часть Linux с PAM) принимают пароль только как keyboard-interactive:
-                    // на запрос «Password:» отвечаем тем же паролем.
-                    var interactive = new KeyboardInteractiveAuthenticationMethod(s.Username);
-                    interactive.AuthenticationPrompt += (_, e) =>
-                    {
-                        foreach (var prompt in e.Prompts)
-                            if (prompt.Request.Contains("assword", StringComparison.OrdinalIgnoreCase) || prompt.Request.Contains("ароль", StringComparison.OrdinalIgnoreCase))
-                                prompt.Response = password;
-                    };
-                    methods.Add(interactive);
-                }
-                var client = new SshClient(new ConnectionInfo(s.Host, s.Port, s.Username, methods.ToArray()));
-                HostKeyVerifier.Attach(client);
-                try
-                {
-                    client.Connect();
-                    return new SshShellConnection(client, 120, 30);
-                }
-                catch
-                {
-                    client.Dispose();
-                    throw;
-                }
-            });
-        }
-
-        StatusText.Text = Loc.F("Подключение к {0}…", s.Host);
-
         IPtyConnection? conn = null;
         var closed = false;
         var counted = false;
+        SessionView? view_ = null;
         // строка сессии в дереве подсвечена зелёным, пока открыта хотя бы одна её вкладка
         void Release()
         {
@@ -1108,8 +1053,6 @@ public partial class MainWindow : Window
             counted = false;
             s.ConnectionCount--;
         }
-
-        SessionView? view_ = null;
 
         void CloseTab()
         {
@@ -1120,6 +1063,7 @@ public partial class MainWindow : Window
             try { conn?.Kill(); } catch { }
         }
 
+        // Окно консоли открывается сразу, ещё до подключения: в нём видно, что происходит, а при неудаче остаётся баннер с вариантами.
         TerminalControl terminal;
         SessionView? view;
         TabItem tab;
@@ -1136,30 +1080,101 @@ public partial class MainWindow : Window
             _states[tab].Duplicate = () => Connect(s, Tabs.Items.IndexOf(created) + 1);
             _states[tab].Session = s;
             // событие контрола приходит не всегда; соединение сообщает о конце само (см. ниже), это запасной путь
-            var creating = tab;
             terminal.ProcessExited += (_, _) => Dispatcher.UIThread.Post(() =>
             {
-                if (_states.TryGetValue(creating, out var st)) st.OnEnded?.Invoke();
+                if (_states.TryGetValue(created, out var st)) st.OnEnded?.Invoke();
             });
+            WriteStatus(terminal, Loc.F("Подключение к {0}:{1}…", s.Host, s.Port));
         }
         else
         {
             (tab, terminal, view) = (reuse.Tab, reuse.Terminal, reuse.View);
             view_ = view;
-            var state = _states[tab];
-            state.OnClose = CloseTab;
-            if (state.StoppedCounted)
-            {
-                s.StoppedCount--; // красная подсветка уходит: идёт новое подключение
-                state.StoppedCounted = false;
-            }
-            state.Stopped = false;
-            WriteRestartMarker(terminal);
         }
 
         try
         {
+            Func<Task<IPtyConnection>> open;
+
+            if (s.Protocol == Protocol.Telnet)
+            {
+                open = async () => await TelnetConnection.ConnectAsync(s.Host, s.Port, 120, 30);
+            }
+            else
+            {
+                // пароль не сохранён — спрашиваем при подключении
+                var password = s.Password;
+                if (s.Auth == AuthKind.Password && password.Length == 0)
+                {
+                    var asked = await Dialogs.AskText(this, "Пароль", Loc.F("Пароль для {0}@{1}", s.Username, s.Host), password: true);
+                    if (asked is null)
+                    {
+                        // отказ от ввода пароля: новая вкладка не нужна, у перезапускаемой всё остаётся как было
+                        if (reuse is null)
+                        {
+                            CloseTab();
+                            RemoveTab(tab);
+                        }
+                        return;
+                    }
+                    password = asked;
+                }
+
+                open = () => Task.Run<IPtyConnection>(() =>
+                {
+                    var methods = new List<AuthenticationMethod>();
+                    if (s.Auth == AuthKind.Key)
+                    {
+                        methods.Add(new PrivateKeyAuthenticationMethod(s.Username,
+                            new PrivateKeyFile(s.KeyPath, s.Passphrase.Length > 0 ? s.Passphrase : null)));
+                    }
+                    else
+                    {
+                        methods.Add(new PasswordAuthenticationMethod(s.Username, password));
+                        // Многие серверы (VMware ESXi, часть Linux с PAM) принимают пароль только как keyboard-interactive:
+                        // на запрос «Password:» отвечаем тем же паролем.
+                        var interactive = new KeyboardInteractiveAuthenticationMethod(s.Username);
+                        interactive.AuthenticationPrompt += (_, e) =>
+                        {
+                            foreach (var prompt in e.Prompts)
+                                if (prompt.Request.Contains("assword", StringComparison.OrdinalIgnoreCase) || prompt.Request.Contains("ароль", StringComparison.OrdinalIgnoreCase))
+                                    prompt.Response = password;
+                        };
+                        methods.Add(interactive);
+                    }
+                    var client = new SshClient(new ConnectionInfo(s.Host, s.Port, s.Username, methods.ToArray()));
+                    HostKeyVerifier.Attach(client);
+                    try
+                    {
+                        client.Connect();
+                        return new SshShellConnection(client, 120, 30);
+                    }
+                    catch
+                    {
+                        client.Dispose();
+                        throw;
+                    }
+                });
+            }
+
+            if (reuse is not null)
+            {
+                // перезапуск: прежний вывод остаётся, под ним черта и новое подключение
+                var state = _states[tab];
+                state.OnClose = CloseTab;
+                if (state.StoppedCounted)
+                {
+                    s.StoppedCount--; // красная подсветка уходит: идёт новое подключение
+                    state.StoppedCounted = false;
+                }
+                state.Stopped = false;
+                WriteRestartMarker(terminal);
+                WriteStatus(terminal, Loc.F("Подключение к {0}:{1}…", s.Host, s.Port));
+            }
+
+            StatusText.Text = Loc.F("Подключение к {0}…", s.Host);
             conn = await open();
+            StatusText.Text = "";
 
             if (closed)
             {
@@ -1171,6 +1186,11 @@ public partial class MainWindow : Window
             {
                 try { terminal.DetachConnection(); } catch { /* прежнего соединения уже нет */ }
             }
+            else
+            {
+                // экран пуст, кроме нашей строки «Подключение…»: убираем её, дальше идёт вывод сервера
+                Emit(terminal, "\u001b[2J\u001b[H");
+            }
 
             if (view is not null && conn is SshShellConnection ssh)
             {
@@ -1180,7 +1200,6 @@ public partial class MainWindow : Window
             }
             else
                 terminal.AttachConnection(new HighlightingPtyConnection(conn));
-
             SyncSizeLater(conn, terminal);
 
             // Конец сеанса берём и от самого соединения: контрол терминала узнаёт об обрыве не всегда
@@ -1211,19 +1230,32 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            if (reuse is null)
-            {
-                RemoveTab(tab);
-                StatusText.Text = Loc.F("Ошибка: {0}", ex.Message);
-            }
-            else
-            {
-                // перезапуск не удался: вкладка и прежний вывод остаются, можно нажать R ещё раз
-                StatusText.Text = "";
-                try { terminal.Terminal.Write("\u001b[91m" + Loc.F("Ошибка: {0}", ex.Message) + "\u001b[0m\r\n"); } catch { }
-                MarkStopped(tab, terminal);
-            }
+            if (closed || !_states.ContainsKey(tab)) return; // вкладку уже закрыли
+            // подключиться не удалось: вкладка остаётся, в ней причина и обычная подсказка «Enter / R / S»
+            StatusText.Text = "";
+            WriteStatus(terminal, Loc.F("Ошибка: {0}", ex.Message), error: true);
+            MarkStopped(tab, terminal);
         }
+    }
+
+    /// <summary>Строка состояния в окне терминала (например, «Подключение к…» или текст ошибки).</summary>
+    private static void WriteStatus(TerminalControl terminal, string text, bool error = false) =>
+        Emit(terminal, (error ? "\u001b[91m" : "\u001b[90m") + text + "\u001b[0m\r\n");
+
+    /// <summary>
+    /// Пишет текст прямо в экран терминала. Пока контрол не показан (вкладка только что создана), запись пропала бы,
+    /// поэтому она ждёт загрузки контрола; порядок записей сохраняется.
+    /// </summary>
+    private static void Emit(TerminalControl terminal, string text)
+    {
+        void Write()
+        {
+            try { terminal.Terminal.Write(text); }
+            catch { /* терминал закрыт */ }
+        }
+
+        if (terminal.IsLoaded) Write();
+        else terminal.Loaded += (_, _) => Write();
     }
 
     /// <summary>

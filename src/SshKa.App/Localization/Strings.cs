@@ -309,6 +309,8 @@ internal static class Strings
 
         ["Сеанс перезапущен"] = "Session restarted",
 
+        ["Подключение к {0}:{1}…"] = "Connecting to {0}:{1}…",
+
         // безопасность
         ["Безопасность"] = "Security",
         ["Спрашивать мастер-пароль при каждом запуске"] = "Ask for the master password on every start",

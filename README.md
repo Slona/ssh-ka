@@ -12,7 +12,7 @@ Website and downloads: https://sshka.slona.me
 ## Features
 
 **Connections**
-- SSH and Telnet, each connection in its own tab; every tab has a close button.
+- SSH and Telnet, each connection in its own tab; every tab has a close button. The tab opens immediately, before the connection is made; if the connection fails, the reason and the "Session stopped" hints (Enter / R / S) appear in the same tab, and **R** retries without losing the output.
 - Login with a user name and password or with a private key (with a passphrase). If the password is not saved in the session, it is asked on connect.
   Password login also works through keyboard-interactive (VMware ESXi, servers with PAM).
 - A local terminal (PowerShell) in a tab: the "Local terminal" item in the session tree's context menu.
