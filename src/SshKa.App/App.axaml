@@ -24,7 +24,7 @@
             <FontFamily x:Key="UiFont">Segoe UI, Noto Sans, DejaVu Sans, Arial</FontFamily>
             <FontFamily x:Key="ContentControlThemeFontFamily">Segoe UI, Noto Sans, DejaVu Sans, Arial</FontFamily>
             <x:Double x:Key="ControlContentThemeFontSize">12</x:Double>
-            <x:Double x:Key="TreeViewItemIndent">12</x:Double>
+            <x:Double x:Key="TreeViewItemIndent">22</x:Double>
             <!-- меньше пустого места слева в дереве сессий -->
             <Thickness x:Key="TreeViewItemExpandCollapseChevronMargin">2,0,4,0</Thickness>
         </ResourceDictionary>
