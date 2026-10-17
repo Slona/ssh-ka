@@ -677,6 +677,28 @@ public partial class MainWindow : Window
 
     private readonly Dictionary<TabItem, TabState> _states = new();
     private readonly List<Pane> _panes = new();
+
+    // Терминал, снятый с экрана (вкладка ушла из области), должен знать, что его только переносят: иначе после возвращения он
+    // перестаёт принимать ввод и показывать вывод. Контрол для этого имеет пару BeginReparent / EndReparent.
+    private readonly HashSet<TerminalControl> _reparenting = new();
+
+    private void DetachContent(ContentControl host)
+    {
+        if (TerminalOf(host.Content) is { } terminal && _reparenting.Add(terminal))
+        {
+            try { terminal.BeginReparent(); } catch { /* контрол ещё не показывался */ }
+        }
+        host.Content = null;
+    }
+
+    private void AttachContent(ContentControl host, Control? view)
+    {
+        host.Content = view;
+        if (TerminalOf(view) is { } terminal && _reparenting.Remove(terminal))
+        {
+            try { terminal.EndReparent(); } catch { /* контрол ещё не показывался */ }
+        }
+    }
     private int _focus;
 
     private static Control? ViewOf(TabItem? tab) => tab?.Tag as Control;
@@ -712,7 +734,7 @@ public partial class MainWindow : Window
     private void BuildPanes(int count)
     {
         // освобождаем содержимое, чтобы его можно было положить в новые рамки
-        foreach (var pane in _panes) pane.Host.Content = null;
+        foreach (var pane in _panes) DetachContent(pane.Host);
         var previous = _panes.Select(p => p.Tab).ToList();
         _panes.Clear();
         PaneGrid.Children.Clear();
@@ -762,7 +784,7 @@ public partial class MainWindow : Window
     private void Assign(Pane pane, TabItem? tab)
     {
         if (ReferenceEquals(pane.Tab, tab) && pane.Host.Content is not null) return;
-        pane.Host.Content = null;
+        DetachContent(pane.Host);
         pane.Tab = tab;
         if (tab is null)
         {
@@ -777,7 +799,7 @@ public partial class MainWindow : Window
             };
             return;
         }
-        pane.Host.Content = ViewOf(tab);
+        AttachContent(pane.Host, ViewOf(tab));
     }
 
     /// <summary>Выбранная на полосе вкладка: если она уже видна — переходим в её область, иначе кладём в активную.</summary>
@@ -799,7 +821,7 @@ public partial class MainWindow : Window
         {
             if (hidden.Count == 0)
             {
-                pane.Host.Content = null; // чтобы Assign заново показал подсказку
+                DetachContent(pane.Host); // чтобы Assign заново показал подсказку
                 Assign(pane, null);
                 continue;
             }
@@ -812,7 +834,7 @@ public partial class MainWindow : Window
     {
         foreach (var pane in _panes.Where(p => ReferenceEquals(p.Tab, tab)))
         {
-            pane.Host.Content = null;
+            DetachContent(pane.Host);
             pane.Tab = null;
         }
         Tabs.Items.Remove(tab);
@@ -1254,8 +1276,20 @@ public partial class MainWindow : Window
             catch { /* терминал закрыт */ }
         }
 
-        if (terminal.IsLoaded) Write();
-        else terminal.Loaded += (_, _) => Write();
+        if (terminal.IsLoaded)
+        {
+            Write();
+            return;
+        }
+
+        // Loaded приходит при каждом возвращении контрола на экран (переключение вкладок), а запись нужна один раз
+        EventHandler<Avalonia.Interactivity.RoutedEventArgs>? handler = null;
+        handler = (_, _) =>
+        {
+            terminal.Loaded -= handler;
+            Write();
+        };
+        terminal.Loaded += handler;
     }
 
     /// <summary>
