@@ -44,7 +44,13 @@ public static class TerminalFactory
     private static void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (sender is not TerminalControl terminal) return;
-        if (!e.GetCurrentPoint(terminal).Properties.IsRightButtonPressed) return;
+        var point = e.GetCurrentPoint(terminal);
+        if (point.Properties.IsLeftButtonPressed)
+        {
+            _pressAt = point.Position;
+            _pressClicks = e.ClickCount;
+        }
+        if (!point.Properties.IsRightButtonPressed) return;
         e.Handled = true;
         _ = PasteAsync(terminal);
     }
@@ -168,10 +174,21 @@ public static class TerminalFactory
 
     private static Thickness EdgeOf(double fontSize) => new(Math.Round(fontSize * 0.28), 0, 0, 0);
 
+    // Щелчок, которым окно выводится на передний план, часто сдвигает мышь на пару пикселей и выделяет один символ,
+    // а копирование на выделение затирало буфер обмена. Одиночный щелчок почти без движения выделением не считаем.
+    private static Point _pressAt;
+    private static int _pressClicks;
+
     private static void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
         if (sender is not TerminalControl terminal || !AppSettings.Current.CopyOnSelect) return;
         if (e.InitialPressMouseButton != MouseButton.Left) return;
+        if (_pressClicks <= 1)
+        {
+            var moved = e.GetPosition(terminal) - _pressAt;
+            var threshold = Math.Max(terminal.CharWidth, 8);
+            if (Math.Abs(moved.X) < threshold && Math.Abs(moved.Y) < terminal.CharHeight / 2) return;
+        }
         // CopyAsync копирует только непустое выделение; обычный щелчок буфер не трогает
         _ = terminal.CopyAsync();
     }
