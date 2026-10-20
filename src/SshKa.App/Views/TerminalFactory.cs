@@ -38,7 +38,18 @@ public static class TerminalFactory
             RoutingStrategies.Bubble | RoutingStrategies.Tunnel, handledEventsToo: true);
         // правая кнопка вставляет из буфера обмена, как в PuTTY
         terminal.AddHandler(InputElement.PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel);
+        // Esc контрол отправляет в формате win32-input-mode (CSI 27;0;27;1;32;1_), которого сервер не понимает: в vi вместо
+        // выхода из режима вставки появлялись символы "__". Отправляем обычный ESC сами.
+        terminal.AddHandler(InputElement.KeyDownEvent, OnEscapeKey, RoutingStrategies.Tunnel);
+        terminal.AddHandler(InputElement.KeyUpEvent, OnEscapeKey, RoutingStrategies.Tunnel);
         return terminal;
+    }
+
+    private static void OnEscapeKey(object? sender, KeyEventArgs e)
+    {
+        if (sender is not TerminalControl terminal || e.Key != Key.Escape || e.KeyModifiers != KeyModifiers.None) return;
+        e.Handled = true;
+        if (e.RoutedEvent == InputElement.KeyDownEvent) _ = terminal.SendInputAsync("");
     }
 
     private static void OnPointerPressed(object? sender, PointerPressedEventArgs e)
