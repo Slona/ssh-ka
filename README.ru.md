@@ -189,3 +189,7 @@ MIT, см. файл [LICENSE](LICENSE). Программой можно своб
 ## Версии
 
 Версия записывается в `src/SshKa.App/SshKa.App.csproj` (`<Version>`), третье число — номер сборки; он растёт с каждой выданной сборкой и показывается в окне «О программе».
+
+## Сторонние компоненты
+
+Встроенный шрифт: [Kibernetyk Mono](https://pavlokilko.github.io/KibernetykMono/) (SIL OFL 1.1, лицензия в `src/SshKa.App/Assets/Fonts/OFL.txt`). Выбирается в Настройки → Терминал.

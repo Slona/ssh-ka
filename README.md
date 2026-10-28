@@ -189,3 +189,7 @@ Bugs and feature requests are welcome in the repository's Issues: https://github
 ## Versions
 
 The version is stored in `src/SshKa.App/SshKa.App.csproj` (`<Version>`); the third number is the build number. It grows with every delivered build and is shown in the About window.
+
+## Third-party
+
+Bundled font: [Kibernetyk Mono](https://pavlokilko.github.io/KibernetykMono/) (SIL OFL 1.1, license in `src/SshKa.App/Assets/Fonts/OFL.txt`). Select it in Settings → Terminal.

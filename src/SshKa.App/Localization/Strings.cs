@@ -220,6 +220,7 @@ internal static class Strings
         ["Жирное начертание (иначе «жирный» от сервера показывается яркими цветами)"] = "Bold font (otherwise the server's “bold” is shown with bright colours)",
         ["Копировать выделенный в терминале текст в буфер обмена"] = "Copy text selected in the terminal to the clipboard",
         ["Подсвечивать вывод по правилам"] = "Highlight output by rules",
+        ["Стандартный"] = "Default",
         ["Шрифт терминала (список через запятую, берётся первый установленный)"] = "Terminal font (comma-separated list, the first installed one is used)",
         ["Размер шрифта"] = "Font size",
         ["Версия"] = "Version",

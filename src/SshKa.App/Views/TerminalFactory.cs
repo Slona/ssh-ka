@@ -115,11 +115,22 @@ public static class TerminalFactory
         }
     }
 
+    public const string BundledFont = "Kibernetyk Mono";
+    private const string BundledFontUri = "avares://SshKa.App/Assets/Fonts#" + BundledFont;
+
+    /// <summary>Шрифт из списка настроек; встроенный Kibernetyk Mono подключается из ресурсов программы.</summary>
+    public static FontFamily ResolveFont(string families)
+    {
+        var parts = families.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .Select(f => f.Equals(BundledFont, StringComparison.OrdinalIgnoreCase) ? BundledFontUri : f);
+        return new FontFamily(string.Join(", ", parts));
+    }
+
     /// <summary>Подставляет текущие настройки шрифта (вызывается и для уже открытых терминалов).</summary>
     public static void ApplySettings(TerminalControl terminal)
     {
         var settings = AppSettings.Current;
-        terminal.FontFamily = new FontFamily(settings.TerminalFontFamily);
+        terminal.FontFamily = ResolveFont(settings.TerminalFontFamily);
         terminal.FontSize = settings.TerminalFontSize;
         terminal.FontWeight = FontWeight.Normal;
         if (terminal.Parent is Grid { Parent: Border border }) border.Padding = EdgeOf(settings.TerminalFontSize);

@@ -143,10 +143,20 @@ public sealed class SettingsWindow : Window
     private Control TerminalPage() => Page(
         Label("Шрифт терминала (список через запятую, берётся первый установленный)"),
         _fontFamily,
+        FontPresets(),
         Label("Размер шрифта"),
         _fontSize,
         _bold,
         _copyOnSelect);
+
+    private Control FontPresets()
+    {
+        var kibernetyk = new Button { Content = "Kibernetyk Mono" };
+        kibernetyk.Click += (_, _) => _fontFamily.Text = TerminalFactory.BundledFont + ", Consolas, monospace";
+        var standard = new Button { Content = Loc.T("Стандартный") };
+        standard.Click += (_, _) => _fontFamily.Text = new AppSettings().TerminalFontFamily;
+        return new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(0, 4, 0, 0), Children = { kibernetyk, standard } };
+    }
 
     private Control HighlightPage()
     {
