@@ -41,8 +41,83 @@ public static class TerminalFactory
         // Esc контрол отправляет в формате win32-input-mode (CSI 27;0;27;1;32;1_), которого сервер не понимает: в vi вместо
         // выхода из режима вставки появлялись символы "__". Отправляем обычный ESC сами.
         terminal.AddHandler(InputElement.KeyDownEvent, OnEscapeKey, RoutingStrategies.Tunnel);
+        // ввод с клавиатуры возвращает экран вниз, если пользователь прокрутил историю вверх
+        terminal.AddHandler(InputElement.KeyDownEvent, OnKeyScrollToBottom, RoutingStrategies.Tunnel);
+        TrackSelection(terminal);
         terminal.AddHandler(InputElement.KeyUpEvent, OnEscapeKey, RoutingStrategies.Tunnel);
         return terminal;
+    }
+
+    private static void OnKeyScrollToBottom(object? sender, KeyEventArgs e)
+    {
+        if (sender is not TerminalControl terminal) return;
+        if (e.Key is Key.LeftShift or Key.RightShift or Key.LeftCtrl or Key.RightCtrl or Key.LeftAlt or Key.RightAlt
+            or Key.LWin or Key.RWin or Key.CapsLock or Key.NumLock or Key.Scroll or Key.PageUp or Key.PageDown) return;
+        if (e.KeyModifiers.HasFlag(KeyModifiers.Shift) && e.Key is Key.Home or Key.End) return; // листание истории
+        try
+        {
+            var buffer = terminal.Terminal.Buffer;
+            if (buffer.YDisp != buffer.YBase) terminal.Terminal.ScrollToBottom();
+        }
+        catch
+        {
+            // терминал ещё не готов
+        }
+    }
+
+    // Выделение, попавшее в буфер обмена, снимается, когда в буфер положили что-то другое: у буфера Windows есть счётчик
+    // изменений, по нему и сравниваем (событий об изменении буфера в Avalonia нет).
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern uint GetClipboardSequenceNumber();
+
+    private static readonly List<(WeakReference<TerminalControl> Terminal, uint[] Sequence)> Tracked = new();
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<TerminalControl, uint[]> Sequences = new();
+    private static DispatcherTimer? _clipboardTimer;
+
+    private static void TrackSelection(TerminalControl terminal)
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        var sequence = new uint[1];
+        Sequences.Add(terminal, sequence);
+        Tracked.Add((new WeakReference<TerminalControl>(terminal), sequence));
+        _clipboardTimer ??= StartClipboardTimer();
+    }
+
+    private static DispatcherTimer StartClipboardTimer()
+    {
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
+        timer.Tick += (_, _) => CheckClipboard();
+        timer.Start();
+        return timer;
+    }
+
+    private static void CheckClipboard()
+    {
+        Tracked.RemoveAll(t => !t.Terminal.TryGetTarget(out _));
+        uint now = 0;
+        foreach (var (reference, sequence) in Tracked)
+        {
+            if (sequence[0] == 0 || !reference.TryGetTarget(out var terminal)) continue;
+            if (now == 0) now = GetClipboardSequenceNumber();
+            if (sequence[0] == now) continue;
+            sequence[0] = 0;
+            try { terminal.Terminal.Selection.ClearSelection(); } catch { /* терминал закрыт */ }
+            terminal.InvalidateVisual();
+        }
+    }
+
+    private static async Task CopySelectionAsync(TerminalControl terminal)
+    {
+        try
+        {
+            await terminal.CopyAsync();
+            if (OperatingSystem.IsWindows() && terminal.Terminal.Selection.HasSelection && Sequences.TryGetValue(terminal, out var sequence))
+                sequence[0] = GetClipboardSequenceNumber();
+        }
+        catch
+        {
+            // буфер занят другой программой: выделение остаётся, копирование можно повторить
+        }
     }
 
     private static void OnEscapeKey(object? sender, KeyEventArgs e)
@@ -212,6 +287,6 @@ public static class TerminalFactory
             if (Math.Abs(moved.X) < threshold && Math.Abs(moved.Y) < terminal.CharHeight / 2) return;
         }
         // CopyAsync копирует только непустое выделение; обычный щелчок буфер не трогает
-        _ = terminal.CopyAsync();
+        _ = CopySelectionAsync(terminal);
     }
 }
