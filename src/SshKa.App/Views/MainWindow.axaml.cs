@@ -864,7 +864,9 @@ public partial class MainWindow : Window
         };
         close.Click += (_, _) =>
         {
-            onClose();
+            // после перезапуска сеанса (R) обработчик закрытия заменяется, поэтому берём текущий, а не переданный при создании
+            if (_states.TryGetValue(tab, out var state)) state.OnClose();
+            else onClose();
             RemoveTab(tab);
         };
 
