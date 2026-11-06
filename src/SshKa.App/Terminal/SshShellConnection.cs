@@ -160,8 +160,22 @@ public sealed class SshShellConnection : IPtyConnection
 
     public void Resize(int cols, int rows)
     {
-        if (cols > 0 && rows > 0)
+        if (cols <= 0 || rows <= 0) return;
+        if (Volatile.Read(ref _exited) != 0) return; // вкладка со «Сессия остановлена» остаётся в дереве компоновки
+        try
+        {
             _shell.ChangeWindowSize((uint)cols, (uint)rows, 0, 0);
+        }
+        catch (ObjectDisposedException)
+        {
+            // соединение закрылось в фоне между проверкой и вызовом: размер менять уже некому
+        }
+        catch (Exception ex)
+        {
+            // сокет умер, а обрыв ещё не замечен. Resize — косметика, исключение из компоновки
+            // UI-потока убивает всё приложение, поэтому пишем в журнал и продолжаем
+            ConnectionLog.Write(_host, "resize failed: " + ex.GetType().Name + ": " + ex.Message);
+        }
     }
 
     public bool WaitForExit(int milliseconds)

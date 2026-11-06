@@ -29,7 +29,13 @@ public sealed class HighlightingPtyConnection : IPtyConnection
         remove => _inner.ProcessExited -= value;
     }
 
-    public void Resize(int cols, int rows) => _inner.Resize(cols, rows);
+    public void Resize(int cols, int rows)
+    {
+        // TerminalView вызывает Resize из компоновки UI-потока; у локального PTY после закрытия
+        // консоли это кидает ObjectDisposedException, а исключение в компоновке убивает приложение
+        try { _inner.Resize(cols, rows); }
+        catch (ObjectDisposedException) { }
+    }
     public bool WaitForExit(int milliseconds) => _inner.WaitForExit(milliseconds);
     public void Kill() => _inner.Kill();
     public void Dispose() => _inner.Dispose();
