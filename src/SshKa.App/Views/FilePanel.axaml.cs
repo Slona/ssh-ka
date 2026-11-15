@@ -67,6 +67,9 @@ public partial class FilePanel : UserControl
     // токен отмены текущей операции (операции выполняются по одной, см. _busy)
     private CancellationToken _token;
 
+    // её же источник отмены: нужен Detach, чтобы обрывать передачу при закрытии вкладки
+    private CancellationTokenSource? _transferCts;
+
     // счётчик навигаций: пока грузится одна, начавшаяся позже отбрасывает результаты более ранней
     private int _navigation;
 
@@ -135,6 +138,9 @@ public partial class FilePanel : UserControl
 
     public void Detach()
     {
+        // вкладка закрывается: обрываем свою передачу, иначе на освобождённом клиенте она может
+        // зависнуть навсегда — счётчик передач у окна не уменьшится, индикатор останется висеть
+        try { _transferCts?.Cancel(); } catch { /* токен уже восстановлен */ }
         _fs?.Dispose();
         _fs = null;
     }
@@ -328,6 +334,7 @@ public partial class FilePanel : UserControl
 
         using var cts = new CancellationTokenSource();
         lock (Running) Running.Add(cts);
+        _transferCts = cts;
         _token = cts.Token;
         TransferActiveChanged?.Invoke(true);
         BusyChanged?.Invoke(true); // опрос сервера ставится на паузу, пока идёт передача
@@ -359,6 +366,7 @@ public partial class FilePanel : UserControl
         finally
         {
             lock (Running) Running.Remove(cts);
+            if (_transferCts == cts) _transferCts = null;
             TransferActiveChanged?.Invoke(false);
             BusyChanged?.Invoke(false);
             _busy = false;

@@ -49,7 +49,16 @@ public partial class MainWindow : Window
         MonitorMode.IsChecked = AppSettings.Current.ShowServerStatus;
         // индикатор передачи внизу окна: передач может идти несколько параллельно (по одной на панель),
         // поэтому видимость считается счётчиком, а прогресс — последним значением любой из них
-        FilePanel.TransferActiveChanged += started => Dispatcher.UIThread.Post(() => _transfers += started ? 1 : -1);
+        FilePanel.TransferActiveChanged += started => Dispatcher.UIThread.Post(() =>
+        {
+            _transfers += started ? 1 : -1;
+            if (_transfers > 0) return;
+            _transfers = 0;
+            // прятать индикатор нужно именно здесь: последний отчёт о прогрессе (100%) приходит
+            // раньше конца передачи, и после него новых отчётов уже не будет
+            TransferBar.IsVisible = TransferName.IsVisible = TransferCancel.IsVisible = false;
+            TransferBar.Value = 0;
+        });
         FilePanel.TransferChanged += value => Dispatcher.UIThread.Post(() =>
         {
             var active = _transfers > 0;
