@@ -85,22 +85,36 @@ public sealed class ServerStatusBar : Border
             DrawGraph();
         }
 
-        _disks.Children.Clear();
-        foreach (var d in s.Disks)
-        {
-            var t = Label();
-            t.Text = $"{d.Mount}: {d.UsedPercent}%";
-            var bad = d.UsedPercent >= 90;
-            if (bad) t.Foreground = Brushes.IndianRed;
-            _disks.Children.Add(new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                Spacing = 4,
-                Children = { Icon("IconDisk", bad ? "#CD5C5C" : "#6B6B6B"), t },
-            });
-        }
-
+        UpdateDisks(s.Disks);
         UpdateTips(s);
+    }
+
+    private static readonly IBrush DiskOkBrush = new SolidColorBrush(Color.Parse("#6B6B6B"));
+    private static readonly IBrush DiskFullBrush = new SolidColorBrush(Color.Parse("#CD5C5C"));
+
+    /// <summary>Строки дисков обновляем на месте: пересоздание панели каждые 2 секунды — лишний мусор и сброс наведения.</summary>
+    private void UpdateDisks(IReadOnlyList<DiskUsage> disks)
+    {
+        var rows = _disks.Children;
+        while (rows.Count > disks.Count) rows.RemoveAt(rows.Count - 1);
+        for (var i = 0; i < disks.Count; i++)
+        {
+            var d = disks[i];
+            var bad = d.UsedPercent >= 90;
+            if (i == rows.Count)
+                rows.Add(new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Spacing = 4,
+                    Children = { Icon("IconDisk", "#6B6B6B"), Label() },
+                });
+
+            var row = (StackPanel)rows[i];
+            var text = (TextBlock)row.Children[1];
+            text.Text = $"{d.Mount}: {d.UsedPercent}%";
+            text.Foreground = bad ? Brushes.IndianRed : null;
+            ((PathIcon)row.Children[0]).Foreground = bad ? DiskFullBrush : DiskOkBrush;
+        }
     }
 
     // ---------- подсказки ----------

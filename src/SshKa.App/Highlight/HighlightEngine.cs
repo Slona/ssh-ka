@@ -114,11 +114,14 @@ public static class HighlightEngine
         var rules = _rules;
         if (rules.Length == 0 || text.Length < 2) return text;
 
+        // принятые совпадения в порядке возрастания начала; новое принимаем, только если не пересекается
+        // с соседями. Сами принятые не пересекаются, поэтому чужое пересечение может быть только рядом:
+        // проверка двух соседей вместо перебора всех (было O(n²) на пёстрых логах)
         List<(int Start, int Length, Compiled Rule)>? chosen = null;
-        foreach (var rule in rules)
+        for (var r = 0; r < rules.Length; r++)
         {
             MatchCollection matches;
-            try { matches = rule.Regex.Matches(text); }
+            try { matches = rules[r].Regex.Matches(text); }
             catch (RegexMatchTimeoutException) { continue; } // слишком тяжёлое выражение пропускаем
 
             try
@@ -127,9 +130,10 @@ public static class HighlightEngine
                 {
                     if (m.Length == 0) continue;
                     chosen ??= new();
-                    // при пересечении выигрывает правило, стоящее в списке раньше
-                    if (chosen.Any(c => m.Index < c.Start + c.Length && c.Start < m.Index + m.Length)) continue;
-                    chosen.Add((m.Index, m.Length, rule));
+                    var index = InsertIndex(chosen, m.Index);
+                    if (index > 0 && chosen[index - 1].Start + chosen[index - 1].Length > m.Index) continue;
+                    if (index < chosen.Count && m.Index + m.Length > chosen[index].Start) continue;
+                    chosen.Insert(index, (m.Index, m.Length, rules[r]));
                 }
             }
             catch (RegexMatchTimeoutException) { }
@@ -151,5 +155,19 @@ public static class HighlightEngine
         }
         sb.Append(text, pos, text.Length - pos);
         return sb.ToString();
+    }
+
+    /// <summary>Позиция вставки в список, упорядоченный по Start: первый элемент, начинающийся правее.</summary>
+    private static int InsertIndex(List<(int Start, int Length, Compiled Rule)> chosen, int start)
+    {
+        var lo = 0;
+        var hi = chosen.Count;
+        while (lo < hi)
+        {
+            var mid = (lo + hi) / 2;
+            if (chosen[mid].Start <= start) lo = mid + 1;
+            else hi = mid;
+        }
+        return lo;
     }
 }

@@ -99,6 +99,9 @@ public sealed class SessionVault
         _key = Derive(newPassword, kdf);
         _kdf = kdf;
         Save();
+        // File.Replace перекладывает прежний файл в .bak, и тот остаётся зашифрованным СТАРЫМ паролем.
+        // Вторая запись кладёт в .bak копию уже с новым ключом: прежний пароль больше нигде не действует.
+        Save();
     }
 
     public void Save()

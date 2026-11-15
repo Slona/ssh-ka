@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Buffers;
+using System.Text;
 
 namespace SshKa.App.Highlight;
 
@@ -18,6 +19,12 @@ public sealed class HighlightingStream : Stream
     private readonly Decoder _decoder = new UTF8Encoding(false).GetDecoder();
     private readonly StringBuilder _run = new();      // накопленный обычный текст
     private readonly StringBuilder _csi = new();      // параметры текущей CSI-последовательности
+    private readonly StringBuilder _out = new();      // выходной текст блока (переиспользуется)
+    private char[] _chars = Array.Empty<char>();      // декодированный текст блока (переиспользуется)
+    private char[] _encoded = Array.Empty<char>();    // копия _out для кодирования: StringBuilder не отдаёт спан целиком
+    private byte[] _pending = Array.Empty<byte>();    // выходной поток блока, арендованный из пула
+    private int _pendingLength;
+    private int _pendingOffset;
     private int _controlLength;
     private int _csiStart = -1;                         // где в выходной строке началась текущая CSI-последовательность
 
@@ -29,9 +36,6 @@ public sealed class HighlightingStream : Stream
     private bool _editorHasOwnColors;
     private int _coloredWordRuns;
     private const int OwnColorsThreshold = 3;
-
-    private byte[] _pending = Array.Empty<byte>();
-    private int _pendingOffset;
 
     public HighlightingStream(Stream inner) => _inner = inner;
 
@@ -50,8 +54,9 @@ public sealed class HighlightingStream : Stream
 
     public override int Read(byte[] buffer, int offset, int count)
     {
-        while (_pendingOffset >= _pending.Length)
+        while (_pendingOffset >= _pendingLength)
         {
+            ReturnPending();
             var n = _inner.Read(_rx, 0, _rx.Length);
             if (n == 0) return 0;
             Fill(_rx.AsSpan(0, n));
@@ -61,8 +66,9 @@ public sealed class HighlightingStream : Stream
 
     public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken ct = default)
     {
-        while (_pendingOffset >= _pending.Length)
+        while (_pendingOffset >= _pendingLength)
         {
+            ReturnPending();
             var n = await _inner.ReadAsync(_rx.AsMemory(), ct);
             if (n == 0) return 0;
             Fill(_rx.AsSpan(0, n));
@@ -73,10 +79,18 @@ public sealed class HighlightingStream : Stream
     public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken ct) =>
         ReadAsync(buffer.AsMemory(offset, count), ct).AsTask();
 
+    private void ReturnPending()
+    {
+        if (_pending.Length > 0) ArrayPool<byte>.Shared.Return(_pending);
+        _pending = Array.Empty<byte>();
+        _pendingLength = 0;
+        _pendingOffset = 0;
+    }
+
     private int Drain(Span<byte> destination)
     {
         // подсветка увеличивает объём данных, поэтому остаток отдаём в следующих чтениях
-        var n = Math.Min(destination.Length, _pending.Length - _pendingOffset);
+        var n = Math.Min(destination.Length, _pendingLength - _pendingOffset);
         _pending.AsSpan(_pendingOffset, n).CopyTo(destination);
         _pendingOffset += n;
         return n;
@@ -84,18 +98,28 @@ public sealed class HighlightingStream : Stream
 
     private void Fill(ReadOnlySpan<byte> input)
     {
-        var chars = new char[_decoder.GetCharCount(input, false)];
-        var count = _decoder.GetChars(input, chars, false);
-        var text = Transform(chars.AsSpan(0, count));
-        _pending = Encoding.UTF8.GetBytes(text);
+        // буферы переиспользуем: на каждый блок чтения (а их сотни в секунду при активном выводе)
+        // прежняя версия создавала массив символов, строку и массив байтов — заметное давление на GC
+        var count = _decoder.GetCharCount(input, false);
+        if (_chars.Length < count) _chars = new char[Math.Max(count, _chars.Length * 2)];
+        count = _decoder.GetChars(input, _chars, false);
+
+        _out.Clear();
+        Transform(_chars.AsSpan(0, count));
+
+        var len = _out.Length;
+        if (_encoded.Length < len) _encoded = new char[Math.Max(len, _encoded.Length * 2)];
+        _out.CopyTo(0, _encoded, 0, len);
+
+        _pending = ArrayPool<byte>.Shared.Rent(Math.Max(Encoding.UTF8.GetMaxByteCount(len), 1));
+        _pendingLength = Encoding.UTF8.GetBytes(_encoded, 0, len, _pending, 0);
         _pendingOffset = 0;
     }
 
     // ---------- разбор потока ----------
 
-    private string Transform(ReadOnlySpan<char> input)
+    private void Transform(ReadOnlySpan<char> input)
     {
-        var sb = new StringBuilder(input.Length + 32);
         if (_mode != Mode.Normal) _csiStart = -1; // последовательность началась в прошлом блоке и уже отдана
 
         foreach (var c in input)
@@ -105,27 +129,27 @@ public sealed class HighlightingStream : Stream
                 case Mode.Normal:
                     if (c == '\u001b')
                     {
-                        FlushRun(sb);
-                        sb.Append(c);
+                        FlushRun(_out);
+                        _out.Append(c);
                         _mode = Mode.Esc;
                     }
                     else _run.Append(c);
                     break;
 
                 case Mode.Esc:
-                    sb.Append(c);
+                    _out.Append(c);
                     _controlLength = 0;
-                    if (c == '[') { _mode = Mode.Csi; _csi.Clear(); _csiStart = sb.Length >= 2 ? sb.Length - 2 : -1; }
+                    if (c == '[') { _mode = Mode.Csi; _csi.Clear(); _csiStart = _out.Length >= 2 ? _out.Length - 2 : -1; }
                     else if (c is ']' or 'P' or '_' or '^' or 'X') _mode = Mode.Osc; // OSC, DCS, APC, PM, SOS
                     else _mode = Mode.Normal;
                     break;
 
                 case Mode.Csi:
-                    sb.Append(c);
+                    _out.Append(c);
                     if (c is >= '@' and <= '~')
                     {
                         if (c == 'm' && _csiStart >= 0 && !Storage.AppSettings.Current.TerminalBold)
-                            DropBold(sb);
+                            DropBold(_out);
                         EndCsi(c);
                         _mode = Mode.Normal;
                     }
@@ -134,22 +158,21 @@ public sealed class HighlightingStream : Stream
                     break;
 
                 case Mode.Osc:
-                    sb.Append(c);
+                    _out.Append(c);
                     if (c == '\a') _mode = Mode.Normal;
                     else if (c == '\u001b') _mode = Mode.OscEsc;
                     else if (++_controlLength > MaxControlStringLength) _mode = Mode.Normal;
                     break;
 
                 case Mode.OscEsc:
-                    sb.Append(c);
+                    _out.Append(c);
                     _mode = c == '\\' ? Mode.Normal : Mode.Osc;
                     break;
             }
         }
 
         // конец блока: выдаём накопленный текст, не дожидаясь следующего (эхо набираемых символов не должно задерживаться)
-        if (_mode == Mode.Normal) FlushRun(sb);
-        return sb.ToString();
+        if (_mode == Mode.Normal) FlushRun(_out);
     }
 
     private void FlushRun(StringBuilder output)
@@ -305,7 +328,11 @@ public sealed class HighlightingStream : Stream
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing) _inner.Dispose();
+        if (disposing)
+        {
+            ReturnPending();
+            _inner.Dispose();
+        }
         base.Dispose(disposing);
     }
 }

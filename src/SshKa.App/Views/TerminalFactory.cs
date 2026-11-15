@@ -124,7 +124,7 @@ public static class TerminalFactory
     {
         if (sender is not TerminalControl terminal || e.Key != Key.Escape || e.KeyModifiers != KeyModifiers.None) return;
         e.Handled = true;
-        if (e.RoutedEvent == InputElement.KeyDownEvent) _ = terminal.SendInputAsync("");
+        if (e.RoutedEvent == InputElement.KeyDownEvent) _ = terminal.SendInputAsync("\u001b");
     }
 
     private static void OnPointerPressed(object? sender, PointerPressedEventArgs e)
@@ -138,6 +138,9 @@ public static class TerminalFactory
         }
         if (!point.Properties.IsRightButtonPressed) return;
         e.Handled = true;
+        // вставка работает и без фокуса, но клавиатура должна следовать за мышью: если фокус остался
+        // в панели проводника, набор после правого щелчка уходил бы не в терминал
+        terminal.Focus();
         _ = PasteAsync(terminal);
     }
 

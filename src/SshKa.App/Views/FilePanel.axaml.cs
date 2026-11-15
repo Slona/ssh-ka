@@ -21,8 +21,12 @@ public partial class FilePanel : UserControl
         ["name"] = "Имя", ["size"] = "Размер", ["date"] = "Изменён", ["owner"] = "Владелец", ["perm"] = "Права",
     };
 
-    /// <summary>Ход загрузки или скачивания в процентах (null — передача закончилась). Показывается в нижней строке окна.</summary>
+    /// <summary>Ход текущей загрузки или скачивания. Показывается в нижней строке окна.</summary>
     public static event Action<(string Name, double Percent)?>? TransferChanged;
+
+    /// <summary>Началась передача (true) или закончилась (false). Операций может идти несколько параллельно
+    /// (по одной на панель), поэтому видимость индикатора считается счётчиком у окна.</summary>
+    public static event Action<bool>? TransferActiveChanged;
 
     private static readonly HashSet<CancellationTokenSource> Running = new();
 
@@ -33,11 +37,16 @@ public partial class FilePanel : UserControl
             foreach (var source in Running) source.Cancel();
     }
 
-    /// <summary>Передаёт ход работы в интерфейс; после отмены новые значения не показываются.</summary>
+    /// <summary>Передаёт ход работы в интерфейс; после отмены новые значения не показываются.
+    /// Троттлинг обязателен: SSH.NET шлёт прогресс на каждый чанк передачи (десятки тысяч на гигабайт),
+    /// и без него UI-поток захлёбывается задачами диспетчера.</summary>
     private sealed class UiProgress : IProgress<TransferProgress>
     {
+        private const int MinIntervalMs = 100;
+
         private readonly CancellationToken _token;
         private readonly Action<TransferProgress> _report;
+        private long _lastShown;
 
         public UiProgress(CancellationToken token, Action<TransferProgress> report)
         {
@@ -45,12 +54,24 @@ public partial class FilePanel : UserControl
             _report = report;
         }
 
-        public void Report(TransferProgress value) =>
+        public void Report(TransferProgress value)
+        {
+            var now = Environment.TickCount64;
+            // последнее значение показываем всегда, промежуточные — не чаще 10 раз в секунду
+            if (value.Done < value.Total && now - Interlocked.Read(ref _lastShown) < MinIntervalMs) return;
+            Interlocked.Exchange(ref _lastShown, now);
             Dispatcher.UIThread.Post(() => { if (!_token.IsCancellationRequested) _report(value); });
+        }
     }
 
     // токен отмены текущей операции (операции выполняются по одной, см. _busy)
     private CancellationToken _token;
+
+    // счётчик навигаций: пока грузится одна, начавшаяся позже отбрасывает результаты более ранней
+    private int _navigation;
+
+    // Connect файловой системы долог: без ограничения два параллельных вызова создали бы два клиента
+    private readonly SemaphoreSlim _fsGate = new(1, 1);
 
     private readonly AppSettings _settings = AppSettings.Current;
     private readonly ObservableCollection<RemoteEntry> _items = new();
@@ -79,8 +100,11 @@ public partial class FilePanel : UserControl
 
     private Window? Owner => TopLevel.GetTopLevel(this) as Window;
 
+    /// <summary>Появилась передача (true) или закончилась (false): на это время опрос сервера ставится на паузу.</summary>
+    public event Action<bool>? BusyChanged;
+
     /// <summary>Подключает панель к открытому SSH-соединению.</summary>
-    public async void Attach(SshShellConnection conn, ShellCwdTracker tracker)
+    public async void Attach(SshShellConnection conn, SessionPoller poller)
     {
         _fsFactory = async protocol =>
         {
@@ -98,7 +122,7 @@ public partial class FilePanel : UserControl
             }
             return fs;
         };
-        tracker.CwdChanged += cwd => Dispatcher.UIThread.Post(() => OnShellCwd(cwd));
+        poller.CwdChanged += cwd => Dispatcher.UIThread.Post(() => OnShellCwd(cwd));
         await NavigateAsync(null);
     }
 
@@ -126,20 +150,32 @@ public partial class FilePanel : UserControl
     private async Task<IRemoteFileSystem> GetFsAsync()
     {
         if (_fs is not null) return _fs;
-        _fs = await _fsFactory!(_settings.Transfer);
-        return _fs;
+        await _fsGate.WaitAsync();
+        try
+        {
+            if (_fs is not null) return _fs; // второй вызов дождался, пока первый создаст клиента
+            _fs = await _fsFactory!(_settings.Transfer);
+            return _fs;
+        }
+        finally
+        {
+            _fsGate.Release();
+        }
     }
 
     /// <summary>Открывает каталог; null — домашний каталог.</summary>
     private async Task NavigateAsync(string? path)
     {
         if (_fsFactory is null) return;
+        var navigation = ++_navigation;
         try
         {
             Status.Text = Loc.T("Загрузка…");
             var fs = await GetFsAsync();
+            if (navigation != _navigation) return; // пока создавался клиент, начали другую навигацию
             var target = path ?? await fs.HomeAsync();
             var entries = await fs.ListAsync(target);
+            if (navigation != _navigation) return; // пока листался каталог, начали другую навигацию
 
             _current = entries.ToList();
             _path = target;
@@ -149,6 +185,7 @@ public partial class FilePanel : UserControl
         }
         catch (Exception ex)
         {
+            if (navigation != _navigation) return; // ошибки устаревшей навигации не показываем
             Status.Text = Loc.F("Ошибка: {0}", ex.Message);
             PathBox.Text = _path;
         }
@@ -196,9 +233,11 @@ public partial class FilePanel : UserControl
         _settings.Transfer = (TransferProtocol)ModeBox.SelectedIndex;
         _settings.Save();
 
-        // следующее обращение создаст файловую систему нужного протокола
-        _fs?.Dispose();
-        _fs = null;
+        // следующее обращение создаст файловую систему нужного протокола; блокируем, чтобы параллельная
+        // навигация не вернула уже созданного клиента старого протокола
+        await _fsGate.WaitAsync();
+        try { _fs?.Dispose(); _fs = null; }
+        finally { _fsGate.Release(); }
         await NavigateAsync(_path);
     }
 
@@ -290,6 +329,8 @@ public partial class FilePanel : UserControl
         using var cts = new CancellationTokenSource();
         lock (Running) Running.Add(cts);
         _token = cts.Token;
+        TransferActiveChanged?.Invoke(true);
+        BusyChanged?.Invoke(true); // опрос сервера ставится на паузу, пока идёт передача
         var progress = new UiProgress(cts.Token, p =>
         {
             TransferChanged?.Invoke((p.Name, p.Total > 0 ? p.Done * 100.0 / p.Total : 0));
@@ -318,7 +359,8 @@ public partial class FilePanel : UserControl
         finally
         {
             lock (Running) Running.Remove(cts);
-            TransferChanged?.Invoke(null);
+            TransferActiveChanged?.Invoke(false);
+            BusyChanged?.Invoke(false);
             _busy = false;
         }
 
@@ -363,11 +405,19 @@ public partial class FilePanel : UserControl
         var selected = SelectedEntries;
         if (selected.Count == 0) { Status.Text = Loc.T("Выберите файлы или папки"); return; }
 
-        var folders = await TopLevel.GetTopLevel(this)!.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        var storage = TopLevel.GetTopLevel(this)!.StorageProvider;
+        var dialog = new FolderPickerOpenOptions
         {
             Title = Loc.T("Куда сохранить"),
             AllowMultiple = false,
-        });
+        };
+        // начинаем с папки прошлого скачивания, если она ещё на месте
+        if (_settings.LastDownloadDir is { } last && Directory.Exists(last))
+        {
+            try { dialog.SuggestedStartLocation = await storage.TryGetFolderFromPathAsync(last); }
+            catch { /* недоступная папка не должна мешать выбору другой */ }
+        }
+        var folders = await storage.OpenFolderPickerAsync(dialog);
         if (folders.Count == 0 || folders[0].TryGetLocalPath() is not { } dir) return;
 
         _settings.LastDownloadDir = dir;

@@ -73,32 +73,37 @@ public sealed class SftpFileSystem : IRemoteFileSystem
     }
 
     public Task DownloadAsync(RemoteEntry entry, string localDir, IProgress<TransferProgress> progress, CancellationToken ct = default) =>
-        Task.Run(() => Download(entry.FullPath, entry.Name, entry.IsDirectory, localDir, progress, ct), ct);
+        Task.Run(() => Download(entry.FullPath, entry.Name, entry.IsDirectory, entry.Size, localDir, progress, ct), ct);
 
-    private async Task Download(string remotePath, string name, bool isDirectory, string localDir, IProgress<TransferProgress> progress, CancellationToken ct)
+    private async Task Download(string remotePath, string name, bool isDirectory, long size, string localDir, IProgress<TransferProgress> progress, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
         var local = Path.Combine(localDir, name);
         if (isDirectory)
         {
             Directory.CreateDirectory(local);
+            // при отмене каталог не удаляем: он мог существовать до передачи (режим «Объединить»),
+            // а недокачанные файлы внутри безопаснее недокачанного дерева, которое мы бы стёрли вместе с прежним содержимым
             foreach (var f in _client.ListDirectory(remotePath).Where(f => f.Name is not ("." or "..")))
-                await Download(f.FullName, f.Name, f.IsDirectory, local, progress, ct);
+                await Download(f.FullName, f.Name, f.IsDirectory, f.Attributes.Size, local, progress, ct);
             return;
         }
 
-        var total = _client.GetAttributes(remotePath).Size;
+        var total = size > 0 ? size : _client.GetAttributes(remotePath).Size;
+        // качаем во временный файл и переименовываем по завершении: прежний файл (режим «Заменить»)
+        // цел до последнего байта, а обрыв не оставляет недокачанный файл под целевым именем
+        var part = local + ".sshka-part";
         try
         {
-            using var stream = File.Create(local);
-            // колбэк прогресса библиотеки работает в потоке пула и не должен бросать исключения, поэтому отмена идёт через токен
+            using var stream = File.Create(part);
             await _client.DownloadFileAsync(remotePath, stream,
-                new Progress<DownloadFileProgressReport>(r => progress.Report(new(name, (long)r.TotalBytesDownloaded, total))), ct);
+                new DirectProgress<DownloadFileProgressReport, TransferProgress>(
+                    r => new TransferProgress(name, (long)r.TotalBytesDownloaded, total), progress), ct);
+            File.Move(part, local, overwrite: true);
         }
         catch
         {
-            // оборванная (отменённая) передача не должна оставлять недокачанный файл
-            try { File.Delete(local); } catch { }
+            try { File.Delete(part); } catch { }
             throw;
         }
     }
@@ -115,22 +120,30 @@ public sealed class SftpFileSystem : IRemoteFileSystem
         if (Directory.Exists(localPath))
         {
             if (!_client.Exists(remote)) _client.CreateDirectory(remote);
+            // при отмене поддерево на сервере не трогаем: каталог мог существовать до передачи
             foreach (var entry in Directory.EnumerateFileSystemEntries(localPath))
                 await Upload(entry, remote, progress, ct);
             return;
         }
+
+        // файл, существовавший на сервере до передачи (режим «Заменить»), при отмене не удаляем:
+        // запись поверх него уже началась, но пусть остаётся то, что успело записаться, а не исчезает вовсе
+        bool existed;
+        try { existed = _client.Exists(remote); }
+        catch { existed = true; } // узнать не вышло — безопаснее считать файл чужим и не трогать при отмене
 
         var total = new FileInfo(localPath).Length;
         using var stream = File.OpenRead(localPath);
         try
         {
             await _client.UploadFileAsync(stream, remote, true,
-                new Progress<UploadFileProgressReport>(r => progress.Report(new(name, (long)r.TotalBytesUploaded, total))), ct);
+                new DirectProgress<UploadFileProgressReport, TransferProgress>(
+                    r => new TransferProgress(name, (long)r.TotalBytesUploaded, total), progress), ct);
         }
         catch (OperationCanceledException)
         {
-            // недогруженный файл на сервере не оставляем
-            try { _client.DeleteFile(remote); } catch { }
+            // недогруженный новый файл на сервере не оставляем
+            if (!existed) try { _client.DeleteFile(remote); } catch { }
             throw;
         }
     }

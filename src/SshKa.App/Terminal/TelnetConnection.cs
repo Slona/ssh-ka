@@ -26,6 +26,7 @@ public sealed class TelnetConnection : IPtyConnection
         var tcp = new TcpClient { NoDelay = true };
         try
         {
+            EnableKeepAlive(tcp);
             await tcp.ConnectAsync(host, port);
             return new TelnetConnection(tcp, cols, rows);
         }
@@ -33,6 +34,25 @@ public sealed class TelnetConnection : IPtyConnection
         {
             tcp.Dispose();
             throw;
+        }
+    }
+
+    /// <summary>
+    /// У Telnet нет своего опроса живости, как у SSH: обрыв без TCP-keepalive замечается только
+    /// системным таймаутом, а это минуты молчания «живого» на вид терминала.
+    /// </summary>
+    private static void EnableKeepAlive(TcpClient tcp)
+    {
+        try
+        {
+            tcp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
+            tcp.Client.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveTime, 10);
+            tcp.Client.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveInterval, 3);
+            tcp.Client.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveRetryCount, 3);
+        }
+        catch
+        {
+            // тонкая настройка есть не везде, обычный keepalive без параметров тоже лучше, чем ничего
         }
     }
 

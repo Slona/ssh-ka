@@ -16,7 +16,7 @@ public sealed class SshShellConnection : IPtyConnection
     public SshShellConnection(SshClient client, int cols, int rows)
     {
         _client = client;
-        PtsBefore = ShellCwdTracker.ListPts(client); // снимок до открытия шелла, чтобы потом найти его терминал
+        PtsBefore = SessionPoller.ListPts(client); // снимок до открытия шелла, чтобы потом найти его терминал
         _shell = client.CreateShellStream("xterm-256color", (uint)cols, (uint)rows, 0, 0, 4096);
         _host = client.ConnectionInfo.Host;
         ConnectionLog.Write(_host, "shell opened");

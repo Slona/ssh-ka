@@ -109,6 +109,10 @@ public static class HostKeyVerifier
         Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
         var tmp = FilePath + ".tmp";
         File.WriteAllText(tmp, JsonSerializer.Serialize(known, new JsonSerializerOptions { WriteIndented = true }));
-        File.Move(tmp, FilePath, overwrite: true);
+        // Replace атомарен, а Move с перезаписью — нет: при краше между шагами список ключей потерялся бы
+        if (File.Exists(FilePath))
+            File.Replace(tmp, FilePath, null);
+        else
+            File.Move(tmp, FilePath);
     }
 }

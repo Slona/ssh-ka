@@ -24,8 +24,7 @@ public sealed class SessionView : Grid
 
     private readonly ServerStatusBar _status = new() { IsVisible = false };
     private SshShellConnection? _conn;
-    private ServerStatsCollector? _stats;
-    private ShellCwdTracker? _tracker;
+    private SessionPoller? _poller;
     private long _lastRedrawRequest = long.MinValue / 2;
 
     public TerminalControl Terminal { get; }
@@ -109,45 +108,34 @@ public sealed class SessionView : Grid
         var shown = new HighlightingPtyConnection(conn);
         Terminal.AttachConnection(shown);
 
-        // один наблюдатель за терминалом на сессию: каталог для проводника и редактор для подсветки кода
-        var tracker = _tracker = new ShellCwdTracker(conn);
-        shown.Highlighting.AlternateScreenChanged += entered => { if (entered) tracker.Poke(); };
-        tracker.EditorPolled += editor => OnEditorPolled(shown.Highlighting, editor);
-        Files.Attach(conn, tracker);
-        tracker.Start();
-
-        if (_monitoring) StartStats();
+        // один опросщик на сессию: каталог и редактор — всегда, показатели сервера — когда включена панель
+        var poller = _poller = new SessionPoller(conn);
+        shown.Highlighting.AlternateScreenChanged += entered => { if (entered) poller.Poke(); };
+        poller.EditorPolled += editor => OnEditorPolled(shown.Highlighting, editor);
+        poller.StatsUpdated += s => Dispatcher.UIThread.Post(() =>
+        {
+            if (!ReferenceEquals(_poller, poller)) return;
+            _status.Update(s);
+            _status.IsVisible = true;
+        });
+        poller.StatsUnsupported += () => Dispatcher.UIThread.Post(() =>
+        {
+            if (ReferenceEquals(_poller, poller)) _status.IsVisible = false;
+        });
+        Files.Attach(conn, poller);
+        Files.BusyChanged += busy => poller.SetPaused(busy); // передачи файлов не должны мешаться с опросами
+        if (_monitoring) poller.SetStatsEnabled(true);
+        poller.Start();
     }
 
     private bool _monitoring;
 
-    /// <summary>Включает и выключает мониторинг сервера (замеры и панель состояния).</summary>
+    /// <summary>Включает и выключает мониторинг сервера (панель состояния и опрос показателей).</summary>
     public void SetMonitoring(bool on)
     {
         _monitoring = on;
-        if (on)
-        {
-            if (_conn is not null && _stats is null) StartStats();
-            return;
-        }
-        _stats?.Dispose();
-        _stats = null;
-        _status.IsVisible = false;
-    }
-
-    private void StartStats()
-    {
-        if (_conn is null) return;
-        // панель состояния показываем только после первого успешного замера: на не-Linux её не будет вовсе
-        var stats = _stats = new ServerStatsCollector(_conn.Client);
-        stats.Updated += s => Dispatcher.UIThread.Post(() =>
-        {
-            if (!ReferenceEquals(_stats, stats)) return;
-            _status.Update(s);
-            _status.IsVisible = true;
-        });
-        stats.Unsupported += () => Dispatcher.UIThread.Post(() => _status.IsVisible = false);
-        stats.Start();
+        _poller?.SetStatsEnabled(on);
+        if (!on) _status.IsVisible = false;
     }
 
     private void OnEditorPolled(HighlightingStream stream, ForegroundEditor? editor)
@@ -161,14 +149,13 @@ public sealed class SessionView : Grid
             && Environment.TickCount64 - _lastRedrawRequest > 2000)
         {
             _lastRedrawRequest = Environment.TickCount64;
-            _ = _tracker?.RequestRedrawAsync(editor.Pid);
+            _ = _poller?.RequestRedrawAsync(editor.Pid);
         }
     }
 
     public void Detach()
     {
-        _tracker?.Dispose();
-        _stats?.Dispose();
+        _poller?.Dispose();
         Files.Detach();
     }
 }

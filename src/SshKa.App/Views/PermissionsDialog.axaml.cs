@@ -42,7 +42,8 @@ public partial class PermissionsDialog : Window
         _loading = true;
         for (var i = 0; i < 9; i++) _boxes[i].IsChecked = (mode & (0x100 >> i)) != 0;
         TextBoxPerms.Text = PermissionBits.ToText(mode, false)[1..];
-        if (updateOctal) OctalBox.Text = PermissionBits.ToOctal(mode);
+        // спец-биты не прячем: у файла с setuid в поле будет «4755», а не «755» без объяснений
+        if (updateOctal) OctalBox.Text = PermissionBits.ToOctal(mode | _special);
         ErrorText.Text = "";
         _loading = false;
     }

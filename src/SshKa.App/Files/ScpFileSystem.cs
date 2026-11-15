@@ -80,17 +80,21 @@ public sealed partial class ScpFileSystem : IRemoteFileSystem
             if (entry.IsDirectory)
             {
                 Directory.CreateDirectory(local);
+                // при отмене каталог не трогаем: он мог существовать до передачи (режим «Объединить»)
                 _scp.Download(entry.FullPath, new DirectoryInfo(local));
             }
             else
             {
+                // качаем во временный файл: прежний файл цел до конца передачи, обрыв не оставляет недокачанный
+                var part = local + ".sshka-part";
                 try
                 {
-                    _scp.Download(entry.FullPath, new FileInfo(local));
+                    _scp.Download(entry.FullPath, new FileInfo(part));
+                    File.Move(part, local, overwrite: true);
                 }
-                catch (OperationCanceledException)
+                catch
                 {
-                    try { File.Delete(local); } catch { } // недокачанный файл не оставляем
+                    try { File.Delete(part); } catch { }
                     throw;
                 }
             }
@@ -106,18 +110,25 @@ public sealed partial class ScpFileSystem : IRemoteFileSystem
             var name = Path.GetFileName(localPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
             var target = PosixPath.Combine(remoteDir, name);
             await RunAsync($"mkdir -p -- {PosixPath.Quote(target)}");
+            // при отмене поддерево на сервере не трогаем: каталог мог существовать до передачи
             await Task.Run(() => UploadCore(localPath, target, progress, ct));
         }
         else
         {
+            // файл, существовавший до передачи (режим «Заменить»), при отмене не удаляем
+            var remote = PosixPath.Combine(remoteDir, Path.GetFileName(localPath));
+            bool existed;
+            try { existed = (await RunAsync($"test -e {PosixPath.Quote(remote)} && echo y || echo n")).Trim() == "y"; }
+            catch { existed = true; } // узнать не вышло — безопаснее считать файл чужим и не трогать при отмене
+
             try
             {
                 await Task.Run(() => UploadCore(localPath, remoteDir, progress, ct));
             }
             catch (OperationCanceledException)
             {
-                // недогруженный файл на сервере не оставляем
-                try { await RunAsync($"rm -f -- {PosixPath.Quote(PosixPath.Combine(remoteDir, Path.GetFileName(localPath)))}"); } catch { }
+                // недогруженный новый файл на сервере не оставляем
+                if (!existed) try { await RunAsync($"rm -f -- {PosixPath.Quote(remote)}"); } catch { }
                 throw;
             }
         }

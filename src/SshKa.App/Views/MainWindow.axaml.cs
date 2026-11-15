@@ -28,6 +28,9 @@ public partial class MainWindow : Window
     private SessionVault? _vault;
     private readonly Control _noExplorer;
 
+    // идущих сейчас передач файлов по всем вкладкам: индикатор внизу окна виден, пока счётчик больше нуля
+    private int _transfers;
+
     // перетаскивание в дереве сессий
     private SessionItem? _pressedItem;
     private PointerPressedEventArgs? _pressedArgs;
@@ -44,9 +47,13 @@ public partial class MainWindow : Window
         HighlightEngine.Reload();
         Loc.Apply(this);
         MonitorMode.IsChecked = AppSettings.Current.ShowServerStatus;
+        // индикатор передачи внизу окна: передач может идти несколько параллельно (по одной на панель),
+        // поэтому видимость считается счётчиком, а прогресс — последним значением любой из них
+        FilePanel.TransferActiveChanged += started => Dispatcher.UIThread.Post(() => _transfers += started ? 1 : -1);
         FilePanel.TransferChanged += value => Dispatcher.UIThread.Post(() =>
         {
-            TransferBar.IsVisible = TransferName.IsVisible = TransferCancel.IsVisible = value is not null;
+            var active = _transfers > 0;
+            TransferBar.IsVisible = TransferName.IsVisible = TransferCancel.IsVisible = active;
             if (value is { } state)
             {
                 TransferBar.Value = state.Percent;
@@ -465,8 +472,7 @@ public partial class MainWindow : Window
         }
         else if (await new SessionEditDialog(item).ShowDialog<bool>(this))
         {
-            // логин показывается в подписи в скобках
-            item.Username = item.Username;
+            // логин показывается в подписи в скобках: DisplayName обновится сам по свойству Username
             Save();
         }
     }
@@ -1065,6 +1071,21 @@ public partial class MainWindow : Window
     private sealed record ReuseTarget(TabItem Tab, TerminalControl Terminal, SessionView? View);
 
     private async void Connect(SessionItem s, int? position = null, ReuseTarget? reuse = null)
+    {
+        // метод асинхронно-voidный: исключение вне внутреннего try (например, при создании вкладки)
+        // раньше уронило бы всё приложение. Перехватываем, показываем и продолжаем работать.
+        try
+        {
+            await ConnectCore(s, position, reuse);
+        }
+        catch (Exception ex)
+        {
+            ConnectionLog.Write(s.Host, "connect failed: " + ex.GetType().Name + ": " + ex.Message);
+            StatusText.Text = Loc.F("Ошибка: {0}", ex.Message);
+        }
+    }
+
+    private async Task ConnectCore(SessionItem s, int? position = null, ReuseTarget? reuse = null)
     {
         IPtyConnection? conn = null;
         var closed = false;
