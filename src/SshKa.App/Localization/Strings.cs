@@ -47,6 +47,12 @@ internal static class Strings
         ["Локальный терминал"] = "Local terminal",
         ["Изменить"] = "Edit",
         ["Дублировать"] = "Duplicate",
+        ["Переместить в папку…"] = "Move to folder…",
+        ["Перемещение"] = "Move",
+        ["Куда переместить «{0}»?"] = "Where to move “{0}”?",
+        ["Переместить"] = "Move",
+        ["Корень"] = "Root",
+        ["Очистить поиск"] = "Clear search",
         [" (копия)"] = " (copy)",
         ["Переименовать папку"] = "Rename folder",
         ["Название папки"] = "Folder name",
@@ -68,6 +74,17 @@ internal static class Strings
         ["Файл сессий MobaXterm"] = "MobaXterm sessions file",
         ["Сессии MobaXterm"] = "MobaXterm sessions",
         ["Импорт"] = "Import",
+        ["Экспорт"] = "Export",
+        ["Экспорт сессий"] = "Export sessions",
+        ["Экспорт завершён"] = "Export finished",
+        ["В MobaXterm (.mxtsessions)…"] = "To MobaXterm (.mxtsessions)…",
+        ["В ~/.ssh/config…"] = "To ~/.ssh/config…",
+        ["Куда сохранить ({0})"] = "Save to ({0})",
+        ["{0}: сессий для экспорта нет."] = "{0}: there are no sessions to export.",
+        ["{0}: экспортировано сессий — {1}."] = "{0}: sessions exported — {1}.",
+        ["Пароли не экспортируются: в файле их не будет, пароль запрашивается при подключении."] =
+            "Passwords are not exported: the file will not contain any; the password is asked on connect.",
+        ["Не удалось записать файл: {0}"] = "Could not write the file: {0}",
         ["Импорт завершён"] = "Import finished",
         ["Импорт {0} {1:yyyy-MM-dd HH:mm}"] = "Import {0} {1:yyyy-MM-dd HH:mm}",
         ["Не удалось прочитать файл: {0}"] = "Could not read the file: {0}",
@@ -80,7 +97,9 @@ internal static class Strings
          "Пароль будет запрошен при подключении, либо введите его в свойствах сессии."] =
             "Passwords are not imported: MobaXterm and PuTTY store them separately in protected form. " +
             "The password will be asked on connect, or enter it in the session properties.",
-        ["Пропущено ({0}, неподдерживаемые типы): "] = "Skipped ({0}, unsupported types): ",
+        ["Пропущено ({0}, {1}): "] = "Skipped ({0}, {1}): ",
+        ["неподдерживаемые типы"] = "unsupported types",
+        ["telnet"] = "telnet",
         ["тип {0}"] = "type {0}",
         ["нет хоста"] = "no host",
 
@@ -90,6 +109,9 @@ internal static class Strings
 
         // проводник
         ["Имя"] = "Name",
+        ["Папка"] = "Folder",
+        ["В CSV (таблица)…"] = "To CSV (table)…",
+        ["Таблица CSV"] = "CSV table",
         ["Размер"] = "Size",
         ["Изменён"] = "Modified",
         ["Владелец"] = "Owner",

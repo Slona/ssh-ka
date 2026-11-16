@@ -19,6 +19,15 @@ public partial class SessionEditDialog : Window
         Loc.Apply(this);
         _loading = false;
         UpdateVisibility();
+
+        // фокус в первое поле сразу при открытии: новую сессию начинают с адреса сервера
+        // (как в PuTTY), редактирование — с имени
+        Opened += (_, _) =>
+        {
+            var first = string.IsNullOrEmpty(_item.Name) ? HostBox : NameBox;
+            first.Focus();
+            if (first == NameBox) first.SelectAll();
+        };
     }
 
     public SessionEditDialog(SessionItem item) : this()

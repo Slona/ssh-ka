@@ -54,6 +54,29 @@
         <Setter Property="Height" Value="15" />
     </Style>
 
+    <!-- крестик очистки внутри текстового поля (поиск): круглый, подсветка заметно мягче,
+        чем у обычных иконок — крупный серый квадрат внутри поля выглядит неопрятно -->
+    <Style Selector="Button.searchclear">
+        <Setter Property="Width" Value="19" />
+        <Setter Property="Height" Value="19" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="ToolTip.ShowDelay" Value="500" />
+    </Style>
+    <Style Selector="Button.searchclear:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="#E6E6E6" />
+    </Style>
+    <Style Selector="Button.searchclear:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="#D8D8D8" />
+    </Style>
+
     <!-- ===== Иконки папок и файлов: жёлтая папка с чёрной обводкой ===== -->
     <Style Selector="Path.folder">
         <Setter Property="Data" Value="{DynamicResource IconFolder}" />
@@ -189,7 +212,8 @@
         <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
     </Style>
 
-    <!-- результаты поиска сессий: плотные строки, как в дереве -->
+    <!-- результаты поиска сессий: плотные строки, как в дереве; цвет выделения остаётся
+        флентовский, а дерево ниже подстраивается под него -->
     <Style Selector="ListBoxItem">
         <Setter Property="MinHeight" Value="0" />
         <Setter Property="Padding" Value="0" />
@@ -260,6 +284,14 @@
         <Setter Property="Padding" Value="2,0" />
         <Setter Property="MinHeight" Value="22" />
     </Style>
+    <!-- наведение и выбор в дереве — теми же цветами, что и в результатах поиска
+        (94C4EA — стандартный цвет выделения Fluent, измерен со скриншота списка) -->
+    <Style Selector="TreeViewItem:pointerover /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="#EDEDED" />
+    </Style>
+    <Style Selector="TreeViewItem:selected /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="#94C4EA" />
+    </Style>
 
     <!-- строка сессии: подключённая подсвечивается зелёным, цель перетаскивания — синим -->
     <Style Selector="Border.row">
@@ -267,6 +299,10 @@
         <Setter Property="BorderBrush" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0,2" />
         <Setter Property="Padding" Value="2,1" />
+    </Style>
+    <!-- наведение на строку результатов поиска; в дереве подсветку даёт TreeViewItem ниже -->
+    <Style Selector="ListBox Border.row:pointerover">
+        <Setter Property="Background" Value="#EDEDED" />
     </Style>
     <!-- вкладка открыта, но сеанс завершён: красный; зелёный (подключена) определён ниже и важнее -->
     <Style Selector="Border.row.stopped">
@@ -304,7 +340,7 @@
         <Setter Property="Height" Value="30" />
         <Setter Property="MinHeight" Value="0" />
         <Setter Property="Padding" Value="0" />
-        <Setter Property="CornerRadius" Value="0" />
+        <Setter Property="CornerRadius" Value="4" />
         <Setter Property="BorderThickness" Value="0,2,0,0" />
         <Setter Property="BorderBrush" Value="Transparent" />
         <Setter Property="Background" Value="Transparent" />

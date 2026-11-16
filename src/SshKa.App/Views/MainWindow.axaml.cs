@@ -1,5 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using System.Security.Cryptography;
+using System.Text;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -70,6 +71,7 @@ public partial class MainWindow : Window
             }
         });
         BuildImportMenu();
+        BuildExportMenu();
         BuildSplitMenu();
         BuildPanes(1);
 
@@ -189,8 +191,9 @@ public partial class MainWindow : Window
         Grid.SetColumn(BarRight, collapsed ? 0 : 1);
         Grid.SetRow(BarRight, collapsed ? 1 : 0);
         BarRight.HorizontalAlignment = collapsed ? HorizontalAlignment.Left : HorizontalAlignment.Right;
-        DockPanel.SetDock(BarBorder, collapsed ? Dock.Top : Dock.Bottom);
-        BarBorder.BorderThickness = collapsed ? new Thickness(0) : new Thickness(0, 1, 0, 0);
+        // полоса кнопок всегда внизу панели: свёрнутая панель — та же полоса, только кнопки столбиком;
+        // переносить её наверх нелогично: кнопка «свернуть» должна оставаться на своём месте
+        BarBorder.BorderThickness = new Thickness(0, 1, 0, 0);
         LeftContent.IsVisible = !collapsed;
         LeftSplitter.IsEnabled = !collapsed;
         CollapseIcon.RenderTransform = collapsed ? new ScaleTransform(-1, 1) : null;
@@ -289,6 +292,16 @@ public partial class MainWindow : Window
         ToolTip.SetTip(ImportButton, Loc.T("Импорт сессий"));
     }
 
+    private void BuildExportMenu()
+    {
+        var menu = new MenuFlyout();
+        menu.Items.Add(MenuEntry("В MobaXterm (.mxtsessions)…", OnExportMoba));
+        menu.Items.Add(MenuEntry("В ~/.ssh/config…", OnExportSshConfig));
+        menu.Items.Add(MenuEntry("В CSV (таблица)…", OnExportCsv));
+        ExportButton.Flyout = menu;
+        ToolTip.SetTip(ExportButton, Loc.T("Экспорт сессий"));
+    }
+
     private async void OnImportMoba(object? sender, RoutedEventArgs e)
     {
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
@@ -351,10 +364,66 @@ public partial class MainWindow : Window
                   "Пароль будет запрошен при подключении, либо введите его в свойствах сессии.") + SkippedText(result));
     }
 
-    private static string SkippedText(ImportResult r) => r.Skipped.Count == 0
+    private static string SkippedText(ImportResult r) => SkippedList(r.Skipped, "неподдерживаемые типы");
+
+    private static string SkippedList(IReadOnlyList<string> skipped, string reason) => skipped.Count == 0
         ? ""
-        : "\n\n" + Loc.F("Пропущено ({0}, неподдерживаемые типы): ", r.Skipped.Count) + string.Join(", ", r.Skipped.Take(15))
-          + (r.Skipped.Count > 15 ? "…" : "");
+        : "\n\n" + Loc.F("Пропущено ({0}, {1}): ", skipped.Count, Loc.T(reason)) + string.Join(", ", skipped.Take(15))
+          + (skipped.Count > 15 ? "…" : "");
+
+    // ---------- экспорт сессий ----------
+
+    private async void OnExportMoba(object? sender, RoutedEventArgs e) =>
+        await ExportAsync("MobaXterm", "sessions", "mxtsessions",
+            new FilePickerFileType(Loc.T("Сессии MobaXterm")) { Patterns = new[] { "*.mxtsessions" } },
+            root => MobaXtermExporter.Write(root));
+
+    private async void OnExportSshConfig(object? sender, RoutedEventArgs e) =>
+        await ExportAsync("ssh config", "config", null, null, root => SshConfigExporter.Write(root));
+
+    private async void OnExportCsv(object? sender, RoutedEventArgs e) =>
+        await ExportAsync("CSV", "sessions", "csv",
+            new FilePickerFileType(Loc.T("Таблица CSV")) { Patterns = new[] { "*.csv" } },
+            root => CsvExporter.Write(root));
+
+    /// <summary>Записывает сессии в файл выбранного формата и сообщает итог. Пароли не выгружаются.</summary>
+    private async Task ExportAsync(string format, string suggestedName, string? defaultExt,
+        FilePickerFileType? fileType, Func<IList<SessionItem>, ExportResult> write)
+    {
+        if (_vault is null) return;
+        var result = write(_vault.Root);
+        if (result.Count == 0)
+        {
+            await Dialogs.Info(this, "Экспорт", Loc.F("{0}: сессий для экспорта нет.", format) + SkippedList(result.Skipped, "telnet"));
+            return;
+        }
+
+        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = Loc.F("Куда сохранить ({0})", format),
+            SuggestedFileName = suggestedName,
+            DefaultExtension = defaultExt,
+            FileTypeChoices = fileType is null ? new[] { FilePickerFileTypes.TextPlain } : new[] { fileType },
+        });
+        if (file is null) return;
+
+        try
+        {
+            await using var stream = await file.OpenWriteAsync();
+            await using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+            await writer.WriteAsync(result.Text);
+        }
+        catch (Exception ex)
+        {
+            await Dialogs.Info(this, "Экспорт", Loc.F("Не удалось записать файл: {0}", ex.Message));
+            return;
+        }
+
+        await Dialogs.Info(this, "Экспорт завершён",
+            Loc.F("{0}: экспортировано сессий — {1}.", format, result.Count) + "\n\n" +
+            Loc.T("Пароли не экспортируются: в файле их не будет, пароль запрашивается при подключении.") +
+            SkippedList(result.Skipped, "telnet"));
+    }
 
     // ---------- дерево сессий ----------
 
@@ -378,6 +447,7 @@ public partial class MainWindow : Window
     /// <summary>Пересчитывает результаты по тексту поиска: слова через пробел, все должны встретиться в имени, адресе, логине или пути.</summary>
     private void RefreshSearch()
     {
+        SearchClear.IsVisible = IsSearching; // крестик очистки — пока есть что очищать
         if (_vault is not null && IsSearching)
         {
             var words = SearchBox.Text!.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -431,6 +501,12 @@ public partial class MainWindow : Window
     private void OnSearchDoubleTapped(object? sender, TappedEventArgs e)
     {
         if (Selected is { IsFolder: false } item) Connect(item);
+    }
+
+    private void OnSearchClear(object? sender, RoutedEventArgs e)
+    {
+        SearchBox.Text = ""; // дублирует Esc: OnSearchChanged вернёт дерево сессий
+        SearchBox.Focus();
     }
 
     /// <summary>Куда добавлять новый узел: в выбранную папку, рядом с выбранной сессией или в корень.</summary>
@@ -502,6 +578,18 @@ public partial class MainWindow : Window
             Passphrase = item.Passphrase,
         });
         Save();
+    }
+
+    private async void OnMoveToFolder(object? sender, RoutedEventArgs e)
+    {
+        if (Selected is not { } item || _vault is null) return;
+        var (ok, folder) = await Dialogs.MoveToFolder(this, _vault.Root, item);
+        if (!ok) return;
+        // выбор текущей папки — не перемещение: MoveItem переуложил бы узел в конец той же папки
+        var from = _vault.FindContainer(item);
+        var same = folder is null ? ReferenceEquals(from, _vault.Root) : ReferenceEquals(from, folder);
+        if (!same) MoveItem(item, folder, DropIndicator.Into);
+        if (IsSearching) RefreshSearch(); // узел переехал — его путь в результатах мог измениться
     }
 
     private async void OnDelete(object? sender, RoutedEventArgs e)
@@ -651,7 +739,7 @@ public partial class MainWindow : Window
         {
             from.Remove(item);
             target.Children.Add(item);
-            target.IsExpanded = true;
+            // раскрытое состояние папки не трогаем: перетаскивание не должно её раскрывать
         }
         else
         {

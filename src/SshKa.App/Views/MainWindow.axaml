@@ -25,11 +25,11 @@
         </Border>
 
         <!-- верхняя панель: крупные кнопки с круглой иконкой и подписью -->
-        <Border DockPanel.Dock="Top" Padding="6,4" BorderThickness="0,0,0,1"
+        <Border DockPanel.Dock="Top" Padding="8,5" BorderThickness="0,0,0,1"
                 BorderBrush="{DynamicResource LineBrush}" Background="{DynamicResource AppBackground}">
             <Grid ColumnDefinitions="Auto,*,Auto">
-                <StackPanel Orientation="Horizontal" Spacing="2">
-                    <Button Classes="tool" Click="OnNewSessionAndConnect" ToolTip.Tip="Создать новую сессию и сразу подключиться">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Button Classes="tool" x:Name="SessionButton" Click="OnNewSessionAndConnect" ToolTip.Tip="Создать новую сессию и сразу подключиться">
                         <StackPanel>
                             <Grid HorizontalAlignment="Center">
                                 <Ellipse Fill="#3E9B4F" />
@@ -57,8 +57,26 @@
                         </StackPanel>
                     </Button>
                 </StackPanel>
-                <TextBlock Grid.Column="1" x:Name="StatusText" VerticalAlignment="Center" Margin="12,0,0,0" Opacity="0.8" />
-                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2">
+                <TextBlock Grid.Column="1" x:Name="StatusText" VerticalAlignment="Center" Margin="16,0,0,0" Opacity="0.8" />
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
+                    <Button Classes="tool" x:Name="ImportButton" ToolTip.Tip="Импорт сессий">
+                        <StackPanel>
+                            <Grid HorizontalAlignment="Center">
+                                <Ellipse Fill="#B8791A" />
+                                <PathIcon Data="{DynamicResource IconDownload}" />
+                            </Grid>
+                            <TextBlock Text="Импорт" />
+                        </StackPanel>
+                    </Button>
+                    <Button Classes="tool" x:Name="ExportButton" ToolTip.Tip="Экспорт сессий">
+                        <StackPanel>
+                            <Grid HorizontalAlignment="Center">
+                                <Ellipse Fill="#7E5FA4" />
+                                <PathIcon Data="{DynamicResource IconUpload}" />
+                            </Grid>
+                            <TextBlock Text="Экспорт" />
+                        </StackPanel>
+                    </Button>
                     <Button Classes="tool" Click="OnAbout" ToolTip.Tip="О программе">
                         <StackPanel>
                             <Grid HorizontalAlignment="Center">
@@ -90,10 +108,10 @@
 
             <!-- левая панель: одна, с переключателем «Сессии / Проводник» снизу -->
             <DockPanel x:Name="LeftPanel" Grid.Column="0" Background="{DynamicResource PanelBackground}">
-                <Border x:Name="BarBorder" DockPanel.Dock="Bottom" BorderThickness="0,1,0,0"
+                <Border x:Name="BarBorder" DockPanel.Dock="Bottom" Padding="4,2" BorderThickness="0,1,0,0"
                         BorderBrush="{DynamicResource LineBrush}" Background="{DynamicResource AppBackground}">
                     <Grid x:Name="BarGrid" ColumnDefinitions="*,Auto">
-                        <StackPanel x:Name="BarLeft" Orientation="Horizontal">
+                        <StackPanel x:Name="BarLeft" Orientation="Horizontal" Spacing="2">
                             <ToggleButton x:Name="SessionsMode" Classes="mode" IsChecked="True" Click="OnSessionsMode"
                                           ToolTip.Tip="Сессии">
                                 <PathIcon Data="{DynamicResource IconStar}" Foreground="#E0A100" />
@@ -103,10 +121,7 @@
                                 <PathIcon Data="{DynamicResource IconFolderOpen}" Foreground="#C8921A" />
                             </ToggleButton>
                         </StackPanel>
-                        <StackPanel x:Name="BarRight" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
-                            <Button x:Name="ImportButton" Classes="mode" ToolTip.Tip="Импорт сессий">
-                                <PathIcon Data="{DynamicResource IconDownload}" Foreground="#2F6DB5" />
-                            </Button>
+                        <StackPanel x:Name="BarRight" Grid.Column="1" Orientation="Horizontal" Spacing="2" HorizontalAlignment="Right">
                             <ToggleButton x:Name="MonitorMode" Classes="mode" IsChecked="True" Click="OnMonitorToggled"
                                           ToolTip.Tip="Мониторинг сервера: загрузка, память, сеть, диски">
                                 <PathIcon Data="{DynamicResource IconChart}" Foreground="#2E8B3E" />
@@ -121,8 +136,15 @@
 
                 <Grid x:Name="LeftContent" RowDefinitions="Auto,*">
                     <!-- поиск по сессиям: пока в поле есть текст, вместо дерева показывается плоский список найденного -->
-                    <TextBox x:Name="SearchBox" Grid.Row="0" Margin="4,4,4,2" PlaceholderText="Поиск сессий…"
-                             TextChanged="OnSearchChanged" KeyDown="OnSearchKeyDown" />
+                    <TextBox x:Name="SearchBox" Grid.Row="0" Margin="6,6,6,4" PlaceholderText="Поиск сессий…"
+                             TextChanged="OnSearchChanged" KeyDown="OnSearchKeyDown">
+                        <TextBox.InnerRightContent>
+                            <Button x:Name="SearchClear" Classes="searchclear" Margin="0,0,5,0" IsVisible="False"
+                                    Click="OnSearchClear" ToolTip.Tip="Очистить поиск">
+                                <PathIcon Data="{DynamicResource IconClose}" Width="8" Height="8" Foreground="#4A4A4A" />
+                            </Button>
+                        </TextBox.InnerRightContent>
+                    </TextBox>
                     <Grid Grid.Row="1">
                     <TreeView x:Name="Tree" DoubleTapped="OnTreeDoubleTapped">
                         <TreeView.ItemTemplate>
@@ -152,6 +174,7 @@
                                 <Separator />
                                 <MenuItem Header="Изменить" Click="OnEdit" />
                                 <MenuItem Header="Дублировать" Click="OnDuplicate" />
+                                <MenuItem Header="Переместить в папку…" Click="OnMoveToFolder" />
                                 <MenuItem Header="Удалить" Click="OnDelete" />
                             </ContextMenu>
                         </TreeView.ContextMenu>
@@ -175,6 +198,7 @@
                                 <Separator />
                                 <MenuItem Header="Изменить" Click="OnEdit" />
                                 <MenuItem Header="Дублировать" Click="OnDuplicate" />
+                                <MenuItem Header="Переместить в папку…" Click="OnMoveToFolder" />
                                 <MenuItem Header="Удалить" Click="OnDelete" />
                             </ContextMenu>
                         </ListBox.ContextMenu>

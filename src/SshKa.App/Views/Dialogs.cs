@@ -1,6 +1,8 @@
-﻿using Avalonia.Controls;
+﻿using System.Collections.ObjectModel;
+using Avalonia.Controls;
 using Avalonia.Layout;
 using SshKa.App.Localization;
+using SshKa.App.Models;
 
 namespace SshKa.App.Views;
 
@@ -253,5 +255,79 @@ public static class Dialogs
         win.Opened += (_, _) => current.Focus();
         Loc.Apply(win);
         return await win.ShowDialog<bool>(owner);
+    }
+
+    /// <summary>Выбор папки для перемещения узла: дерево всех папок хранилища (сам узел и его содержимое
+    /// исключены), сверху — узел «Корень». Возвращает (true, папка) или (true, null) — в корень;
+    /// (false, _) — отмена.</summary>
+    public static async Task<(bool Ok, SessionItem? Folder)> MoveToFolder(
+        Window owner, ObservableCollection<SessionItem> root, SessionItem item)
+    {
+        var rootNode = new FolderNode { Name = Loc.T("Корень") };
+        void Fill(FolderNode parent, IEnumerable<SessionItem> level)
+        {
+            foreach (var c in level)
+            {
+                if (!c.IsFolder || c == item || item.Contains(c)) continue;
+                var node = new FolderNode { Name = c.Name, Ref = c };
+                Fill(node, c.Children);
+                parent.Children.Add(node);
+            }
+        }
+        Fill(rootNode, root);
+
+        TreeViewItem MakeNode(FolderNode n)
+        {
+            var result = new TreeViewItem
+            {
+                IsExpanded = true,
+                Tag = n,
+                Header = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Spacing = 5,
+                    Children =
+                    {
+                        new Avalonia.Controls.Shapes.Path { Classes = { "folder" }, VerticalAlignment = VerticalAlignment.Center },
+                        new TextBlock { Text = n.Name, VerticalAlignment = VerticalAlignment.Center },
+                    },
+                },
+            };
+            foreach (var child in n.Children) result.Items.Add(MakeNode(child));
+            return result;
+        }
+
+        var tree = new TreeView { MinWidth = 280, Height = 300 };
+        tree.Items.Add(MakeNode(rootNode));
+
+        var buttons = Buttons(out var ok, out var cancel, "Переместить");
+        ok.IsEnabled = false;
+        tree.SelectionChanged += (_, _) => ok.IsEnabled = tree.SelectedItem is TreeViewItem;
+        tree.DoubleTapped += (_, _) => { if (ok.IsEnabled) ok.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)); };
+
+        var win = Make("Перемещение");
+        ((StackPanel)win.Content!).Children.AddRange(new Control[]
+        {
+            new TextBlock { Text = Loc.F("Куда переместить «{0}»?", item.Name) },
+            new Border
+            {
+                BorderBrush = Avalonia.Media.Brushes.LightGray,
+                BorderThickness = new Avalonia.Thickness(1),
+                Child = tree,
+            },
+            buttons,
+        });
+        ok.Click += (_, _) => win.Close((true, (tree.SelectedItem as TreeViewItem)?.Tag is FolderNode f ? f.Ref : null));
+        cancel.Click += (_, _) => win.Close((false, (SessionItem?)null));
+        Loc.Apply(win);
+        return await win.ShowDialog<(bool, SessionItem?)>(owner);
+    }
+
+    /// <summary>Узел дерева выбора папки: имя и настоящая папка хранилища (у «Корня» Ref — null).</summary>
+    private sealed class FolderNode
+    {
+        public string Name = "";
+        public SessionItem? Ref;
+        public readonly List<FolderNode> Children = new();
     }
 }
