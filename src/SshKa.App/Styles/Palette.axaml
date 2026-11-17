@@ -1,0 +1,33 @@
+﻿<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Палитра и шрифты приложения. Светлые значения здесь; тёмные для Modern переопределяет Styles/ModernResources.axaml.
+         Отдельный файл: чтобы тестовому рендеру (build/UiPreview) не нужна была копия App.axaml. -->
+
+    <!-- Палитра: белый, но с лёгким серым оттенком -->
+    <Color x:Key="AppBackgroundColor">#F0F0F0</Color>
+    <Color x:Key="PanelBackgroundColor">#F7F7F7</Color>
+    <Color x:Key="LineColor">#C6C6C6</Color>
+    <SolidColorBrush x:Key="AppBackground" Color="{StaticResource AppBackgroundColor}" />
+    <SolidColorBrush x:Key="PanelBackground" Color="{StaticResource PanelBackgroundColor}" />
+    <SolidColorBrush x:Key="LineBrush" Color="{StaticResource LineColor}" />
+    <SolidColorBrush x:Key="ConnectedBrush" Color="#CDEBC9" />
+    <SolidColorBrush x:Key="StoppedBrush" Color="#F4C7C3" />
+    <SolidColorBrush x:Key="AccentBrush" Color="#3B78C2" />
+
+    <!-- общие ключи обоих вариантов: светлые значения повторяют прежний вид, тёмные переопределяет Modern -->
+    <SolidColorBrush x:Key="HoverBrush" Color="#EDEDED" />
+    <SolidColorBrush x:Key="PressedBrush" Color="#DADADA" />
+    <SolidColorBrush x:Key="NeutralIconBrush" Color="#4A4A4A" />
+    <SolidColorBrush x:Key="MonitorIconBrush" Color="#4F5F70" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#6B6B6B" />
+    <SolidColorBrush x:Key="TabTextBrush" Color="#444444" />
+    <SolidColorBrush x:Key="TabActiveBrush" Color="#111111" />
+
+    <!-- Шрифты: простые системные -->
+    <FontFamily x:Key="UiFont">Segoe UI, Noto Sans, DejaVu Sans, Arial</FontFamily>
+    <FontFamily x:Key="ContentControlThemeFontFamily">Segoe UI, Noto Sans, DejaVu Sans, Arial</FontFamily>
+    <x:Double x:Key="ControlContentThemeFontSize">12</x:Double>
+    <x:Double x:Key="TreeViewItemIndent">22</x:Double>
+    <!-- меньше пустого места слева в дереве сессий -->
+    <Thickness x:Key="TreeViewItemExpandCollapseChevronMargin">2,0,4,0</Thickness>
+</ResourceDictionary>

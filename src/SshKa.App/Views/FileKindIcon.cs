@@ -32,18 +32,21 @@ public static class FileKindIcon
         FileKind.Image => "#2E9E5B",
         FileKind.Video => "#8E44AD",
         FileKind.Audio => "#C2185B",
-        FileKind.Text => "#5A6B7B",
+        FileKind.Text => Ui("#5A6B7B", "#9BA6B4"),
         FileKind.Pdf => "#C0392B",
-        FileKind.Log => "#8A8A8A",
+        FileKind.Log => Ui("#8A8A8A", "#96A0AD"),
         FileKind.Code => "#2F6DB5",
         FileKind.Script => "#2E8B3E",
-        FileKind.Config => "#6B6B6B",
+        FileKind.Config => Ui("#6B6B6B", "#98A0AB"),
         FileKind.Link => "#2F6DB5",
-        FileKind.Binary => "#6B6B6B",
+        FileKind.Binary => Ui("#6B6B6B", "#98A0AB"),
         FileKind.Database => "#8E5A2B",
         FileKind.Key => "#C8921A",
-        _ => "#707070",
+        _ => Ui("#707070", "#A9B1BD"),
     };
+
+    /// <summary>Нейтральные цвета зависят от варианта интерфейса: в тёмном они светлеют.</summary>
+    private static string Ui(string light, string dark) => App.ModernUi ? dark : light;
 
     public static readonly IValueConverter Geometry = new FuncValueConverter<FileKind, Avalonia.Media.Geometry?>(k => IconResources.Get(Key(k)));
 

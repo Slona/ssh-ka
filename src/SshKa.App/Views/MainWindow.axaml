@@ -128,7 +128,7 @@
                             </ToggleButton>
                             <Button x:Name="CollapseButton" Classes="mode" Click="OnCollapse"
                                     ToolTip.Tip="Свернуть или развернуть панель">
-                                <PathIcon x:Name="CollapseIcon" Data="{DynamicResource IconChevronsLeft}" Foreground="#4A4A4A" />
+                                <PathIcon x:Name="CollapseIcon" Data="{DynamicResource IconChevronsLeft}" Foreground="{DynamicResource NeutralIconBrush}" />
                             </Button>
                         </StackPanel>
                     </Grid>
@@ -141,7 +141,7 @@
                         <TextBox.InnerRightContent>
                             <Button x:Name="SearchClear" Classes="searchclear" Margin="0,0,5,0" IsVisible="False"
                                     Click="OnSearchClear" ToolTip.Tip="Очистить поиск">
-                                <PathIcon Data="{DynamicResource IconClose}" Width="8" Height="8" Foreground="#4A4A4A" />
+                                <PathIcon Data="{DynamicResource IconClose}" Width="8" Height="8" Foreground="{DynamicResource NeutralIconBrush}" />
                             </Button>
                         </TextBox.InnerRightContent>
                     </TextBox>
@@ -157,7 +157,7 @@
                                         Classes.dropInto="{Binding IsDropInto}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
                                         <Path Classes="folder" IsVisible="{Binding IsFolder}" />
-                                        <PathIcon Data="{DynamicResource IconMonitor}" Width="13" Height="13" Foreground="#4F5F70"
+                                        <PathIcon Data="{DynamicResource IconMonitor}" Width="13" Height="13" Foreground="{DynamicResource MonitorIconBrush}"
                                                   IsVisible="{Binding !IsFolder}" VerticalAlignment="Center" />
                                         <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
                                     </StackPanel>
@@ -185,7 +185,7 @@
                             <DataTemplate x:DataType="m:SearchHit">
                                 <Border Classes="row" Classes.connected="{Binding Item.IsConnected}" Classes.stopped="{Binding Item.IsStopped}">
                                     <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <PathIcon Data="{DynamicResource IconMonitor}" Width="13" Height="13" Foreground="#4F5F70" VerticalAlignment="Center" />
+                                        <PathIcon Data="{DynamicResource IconMonitor}" Width="13" Height="13" Foreground="{DynamicResource MonitorIconBrush}" VerticalAlignment="Center" />
                                         <TextBlock Text="{Binding Item.DisplayName}" VerticalAlignment="Center" />
                                         <TextBlock Text="{Binding PathText}" VerticalAlignment="Center" Opacity="0.55" />
                                     </StackPanel>

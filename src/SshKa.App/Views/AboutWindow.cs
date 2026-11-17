@@ -12,6 +12,7 @@ public sealed class AboutWindow : Window
 {
     public AboutWindow()
     {
+        UiTheme.Apply(this);
         Title = Loc.T("О программе");
         Width = 420;
         SizeToContent = SizeToContent.Height;
@@ -63,7 +64,8 @@ public sealed class AboutWindow : Window
         var link = new TextBlock
         {
             Text = Loc.T(text),
-            Foreground = IconResources.Brush("AccentBrush"),
+            // у Modern акцент тёмной палитры (лежит в ресурсах окна после UiTheme.Apply)
+            Foreground = UiTheme.Brush(this, "AccentBrush") ?? IconResources.Brush("AccentBrush"),
             TextDecorations = Avalonia.Media.TextDecorations.Underline,
             Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand),
             HorizontalAlignment = HorizontalAlignment.Center,

@@ -9,7 +9,7 @@
         <!-- панель инструментов: иконки, подсказки появляются с задержкой -->
         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="4,4,4,2" Spacing="1">
             <Button Classes="icon" Click="OnUp" ToolTip.Tip="На уровень вверх">
-                <PathIcon Data="{DynamicResource IconArrowUp}" Foreground="#4A4A4A" />
+                <PathIcon Data="{DynamicResource IconArrowUp}" Foreground="{DynamicResource NeutralIconBrush}" />
             </Button>
             <Button Classes="icon" Click="OnRefresh" ToolTip.Tip="Обновить">
                 <PathIcon Data="{DynamicResource IconRefresh}" Foreground="#2E8B3E" />
@@ -29,10 +29,10 @@
                 <PathIcon Data="{DynamicResource IconNewFolder}" Foreground="#C8921A" />
             </Button>
             <Button Classes="icon" Click="OnRename" ToolTip.Tip="Переименовать">
-                <PathIcon Data="{DynamicResource IconRename}" Foreground="#4A4A4A" />
+                <PathIcon Data="{DynamicResource IconRename}" Foreground="{DynamicResource NeutralIconBrush}" />
             </Button>
             <Button Classes="icon" Click="OnPermissions" ToolTip.Tip="Изменить права доступа">
-                <PathIcon Data="{DynamicResource IconLock}" Foreground="#4A4A4A" />
+                <PathIcon Data="{DynamicResource IconLock}" Foreground="{DynamicResource NeutralIconBrush}" />
             </Button>
             <Button Classes="icon" Click="OnDelete" ToolTip.Tip="Удалить">
                 <PathIcon Data="{DynamicResource IconDelete}" Foreground="#C0392B" />
@@ -98,10 +98,10 @@
                     </MenuItem>
                     <Separator />
                     <MenuItem x:Name="MenuRename" Header="Переименовать" Click="OnRename">
-                        <MenuItem.Icon><PathIcon Data="{DynamicResource IconRename}" Foreground="#4A4A4A" /></MenuItem.Icon>
+                        <MenuItem.Icon><PathIcon Data="{DynamicResource IconRename}" Foreground="{DynamicResource NeutralIconBrush}" /></MenuItem.Icon>
                     </MenuItem>
                     <MenuItem x:Name="MenuPermissions" Header="Изменить права…" Click="OnPermissions">
-                        <MenuItem.Icon><PathIcon Data="{DynamicResource IconLock}" Foreground="#4A4A4A" /></MenuItem.Icon>
+                        <MenuItem.Icon><PathIcon Data="{DynamicResource IconLock}" Foreground="{DynamicResource NeutralIconBrush}" /></MenuItem.Icon>
                     </MenuItem>
                     <MenuItem x:Name="MenuDelete" Header="Удалить" Click="OnDelete">
                         <MenuItem.Icon><PathIcon Data="{DynamicResource IconDelete}" Foreground="#C0392B" /></MenuItem.Icon>
@@ -125,9 +125,9 @@
         <Border Grid.Row="5" Margin="0,4,0,0" Padding="6,3" Background="{DynamicResource AppBackground}"
                 BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0">
             <Grid ColumnDefinitions="*,Auto">
-                <CheckBox x:Name="FollowBox" Content="Следовать за терминалом" IsChecked="True"
+                <CheckBox x:Name="FollowBox" Content="Следовать за терминалом" IsChecked="True" VerticalAlignment="Center"
                           IsCheckedChanged="OnFollowChanged" ToolTip.Tip="Переходить в тот каталог, где находится шелл" />
-                <ComboBox Grid.Column="1" x:Name="ModeBox" SelectedIndex="0" SelectionChanged="OnModeChanged"
+                <ComboBox Grid.Column="1" x:Name="ModeBox" SelectedIndex="0" VerticalAlignment="Center" SelectionChanged="OnModeChanged"
                           ToolTip.Tip="Протокол передачи файлов">
                     <ComboBoxItem Content="SFTP" />
                     <ComboBoxItem Content="SCP" />

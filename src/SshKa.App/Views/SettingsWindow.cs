@@ -13,6 +13,7 @@ namespace SshKa.App.Views;
 public sealed class SettingsWindow : Window
 {
     private readonly ComboBox _language = new() { MinWidth = 180 };
+    private readonly ComboBox _ui = new() { MinWidth = 180 };
     private readonly TextBox _fontFamily = new() { MinWidth = 340 };
     private readonly NumericUpDown _fontSize = new() { Minimum = 8, Maximum = 32, Increment = 1, FormatString = "0", MinWidth = 110 };
     private readonly CheckBox _bold = new() { Content = Loc.T("Жирное начертание (иначе «жирный» от сервера показывается яркими цветами)") };
@@ -25,6 +26,7 @@ public sealed class SettingsWindow : Window
 
     public SettingsWindow(SessionVault? vault = null)
     {
+        UiTheme.Apply(this);
         _vault = vault;
         Title = Loc.T("Настройки");
         Width = 860;
@@ -37,6 +39,9 @@ public sealed class SettingsWindow : Window
         _language.Items.Add(new ComboBoxItem { Content = "Русский", Tag = "ru" });
         _language.Items.Add(new ComboBoxItem { Content = "English", Tag = "en" });
         _language.SelectedIndex = settings.Language == "en" ? 1 : 0;
+        _ui.Items.Add(new ComboBoxItem { Content = Loc.T("Классический"), Tag = "classic" });
+        _ui.Items.Add(new ComboBoxItem { Content = Loc.T("Modern (тёмная тема)"), Tag = "modern" });
+        _ui.SelectedIndex = settings.Ui == "modern" ? 1 : 0;
 
         _fontFamily.Text = settings.TerminalFontFamily;
         _fontSize.Value = (decimal)settings.TerminalFontSize;
@@ -138,7 +143,10 @@ public sealed class SettingsWindow : Window
     private Control GeneralPage() => Page(
         Label("Язык интерфейса"),
         _language,
-        Hint("Язык сменится после перезапуска программы."));
+        Hint("Язык сменится после перезапуска программы."),
+        Label("Вариант интерфейса"),
+        _ui,
+        Hint("Modern — тёмный интерфейс в стиле Termius с иконками слева. Вариант применится после перезапуска программы."));
 
     private Control TerminalPage() => Page(
         Label("Шрифт терминала (список через запятую, берётся первый установленный)"),
@@ -174,6 +182,7 @@ public sealed class SettingsWindow : Window
 
         var settings = AppSettings.Current;
         settings.Language = (_language.SelectedItem as ComboBoxItem)?.Tag as string ?? "ru";
+        settings.Ui = (_ui.SelectedItem as ComboBoxItem)?.Tag as string ?? "classic";
         if (!string.IsNullOrWhiteSpace(_fontFamily.Text)) settings.TerminalFontFamily = _fontFamily.Text.Trim();
         settings.TerminalFontSize = (double)(_fontSize.Value ?? 14);
         settings.TerminalBold = _bold.IsChecked == true;

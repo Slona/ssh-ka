@@ -44,6 +44,9 @@ public sealed class AppSettings
     /// <summary>Показывать панель состояния сервера под терминалом.</summary>
     public bool ShowServerStatus { get; set; } = true;
 
+    /// <summary>Вариант интерфейса: "classic" (светлый) или "modern" (тёмный, в стиле Termius). Применяется после перезапуска.</summary>
+    public string Ui { get; set; } = "classic";
+
     /// <summary>Версия формата файла: нужна, чтобы один раз обновить прежние значения по умолчанию.</summary>
     public int Version { get; set; }
 

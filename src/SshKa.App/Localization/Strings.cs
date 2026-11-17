@@ -31,9 +31,19 @@ internal static class Strings
         ["Одна область"] = "One pane",
         ["Две области"] = "Two panes",
         ["Четыре области"] = "Four panes",
-        ["Выберите вкладку на панели вкладок: она появится в этой области."] = "Pick a tab on the tab bar: it will appear in this pane.",
+                ["Выберите вкладку на панели вкладок: она появится в этой области."] = "Pick a tab on the tab bar: it will appear in this pane.",
         ["Закрыть программу?"] = "Close the program?",
         ["Закрыть программу? Открытые вкладки ({0}) и их соединения будут закрыты."] = "Close the program? Open tabs ({0}) and their connections will be closed.",
+
+        // вариант интерфейса Modern
+        ["Импорт, экспорт и другое"] = "Import, export and more",
+        ["Классический"] = "Classic",
+        ["Modern (тёмная тема)"] = "Modern (dark theme)",
+        ["Вариант интерфейса"] = "Interface variant",
+        ["Modern — тёмный интерфейс в стиле Termius с иконками слева. Вариант применится после перезапуска программы."] =
+            "Modern is a dark Termius-style interface with an icon rail on the left. The variant is applied after restarting the program.",
+        ["Вариант интерфейса сменится после перезапуска программы."] = "The interface variant will change after restarting the program.",
+        ["Язык и вариант интерфейса сменятся после перезапуска программы."] = "The language and interface variant will change after restarting the program.",
 
         // левая панель
         ["Сессии"] = "Sessions",

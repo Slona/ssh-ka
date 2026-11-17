@@ -1,0 +1,232 @@
+﻿<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:v="using:SshKa.App.Views"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Тёмные стили Modern. Подключаются в Styles окна MainWindowModern: перекрывают одноимённые
+         стили Theme.axaml только внутри Modern-окна. Палитра — из ModernResources.axaml. -->
+
+    <!-- ===== Кнопки-иконки: тёмное наведение ===== -->
+    <Style Selector="Button.icon:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource HoverBrush}" />
+    </Style>
+    <Style Selector="Button.icon:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource PressedBrush}" />
+    </Style>
+    <Style Selector="Button.searchclear:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource HoverBrush}" />
+    </Style>
+    <Style Selector="Button.searchclear:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource PressedBrush}" />
+    </Style>
+
+    <!-- кнопка «+» в шапке сайдбара: тихая, подсвечивается акцентом при наведении.
+         Класс назван plus, а не accent: у Fluent есть собственный Button.accent с синей заливкой. -->
+    <Style Selector="Button.plus PathIcon">
+        <Setter Property="Foreground" Value="{DynamicResource NeutralIconBrush}" />
+    </Style>
+    <Style Selector="Button.plus:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource RailCheckedBrush}" />
+    </Style>
+    <Style Selector="Button.plus:pointerover PathIcon">
+        <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+    </Style>
+
+    <!-- ===== Вкладки: плоская тёмная полоса, активная — светлая подпись и голубая черта снизу ===== -->
+    <Style Selector="TabControl">
+        <Setter Property="Background" Value="{DynamicResource TabStripBackground}" />
+        <Setter Property="Padding" Value="0" />
+    </Style>
+    <Style Selector="TabItem">
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="10,4,6,4" />
+        <Setter Property="Margin" Value="0" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{DynamicResource TabTextBrush}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="PART_LayoutRoot"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="Transparent"
+                        BorderThickness="0,0,0,2"
+                        Padding="{TemplateBinding Padding}">
+                    <ContentPresenter Name="PART_ContentPresenter"
+                                      Content="{TemplateBinding Header}"
+                                      ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                      VerticalAlignment="Center" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="TabItem:pointerover /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="{DynamicResource HoverBrush}" />
+    </Style>
+    <Style Selector="TabItem:selected /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="{DynamicResource TabStripBackground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+    </Style>
+    <Style Selector="TabItem:selected">
+        <Setter Property="Foreground" Value="{DynamicResource TabActiveBrush}" />
+    </Style>
+    <!-- кнопка закрытия на вкладке -->
+    <Style Selector="TabItem Button.close">
+        <Setter Property="Width" Value="16" />
+        <Setter Property="Height" Value="16" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="CornerRadius" Value="3" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TabItem Button.close:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="#5A2A2A" />
+    </Style>
+    <Style Selector="TabItem Button.close PathIcon">
+        <Setter Property="Width" Value="8" />
+        <Setter Property="Height" Value="8" />
+        <Setter Property="Foreground" Value="{DynamicResource NeutralIconBrush}" />
+    </Style>
+
+    <!-- ===== Дерево сессий: свой шаблон со светлой стрелкой ===== -->
+    <Style Selector="TreeView">
+        <Setter Property="Background" Value="{DynamicResource PanelBackground}" />
+        <Setter Property="Padding" Value="0" />
+    </Style>
+    <Style Selector="TreeViewItem">
+        <Setter Property="MinHeight" Value="22" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="IsExpanded" Value="{ReflectionBinding IsExpanded, Mode=TwoWay}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <StackPanel>
+                    <Border Name="PART_LayoutRoot" MinHeight="22"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}"
+                            TemplatedControl.IsTemplateFocusTarget="True">
+                        <Grid Name="PART_Header" ColumnDefinitions="Auto,*" Margin="{TemplateBinding Level, Converter={x:Static v:TreeIndent.Converter}}">
+                            <Panel Name="PART_ExpandCollapseChevronContainer" Width="14" Margin="2,0,2,0">
+                                <ToggleButton Name="PART_ExpandCollapseChevron" Focusable="False" Width="14" Height="14"
+                                              Padding="0" MinHeight="0" Background="Transparent" BorderThickness="0"
+                                              HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              IsChecked="{TemplateBinding IsExpanded, Mode=TwoWay}">
+                                    <ToggleButton.Template>
+                                        <ControlTemplate>
+                                            <Border Background="Transparent">
+                                                <Path Name="Chevron" Data="M0,0 L8,0 L4,5 Z" Fill="{DynamicResource NeutralIconBrush}"
+                                                      HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Border>
+                                        </ControlTemplate>
+                                    </ToggleButton.Template>
+                                </ToggleButton>
+                            </Panel>
+                            <ContentPresenter Name="PART_HeaderPresenter" Grid.Column="1"
+                                              Background="Transparent"
+                                              BorderBrush="{TemplateBinding BorderBrush}"
+                                              BorderThickness="{TemplateBinding BorderThickness}"
+                                              Content="{TemplateBinding Header}"
+                                              ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                              Padding="{TemplateBinding Padding}"
+                                              Focusable="False" />
+                        </Grid>
+                    </Border>
+                    <ItemsPresenter Name="PART_ItemsPresenter"
+                                    IsVisible="{TemplateBinding IsExpanded}"
+                                    ItemsPanel="{TemplateBinding ItemsPanel}" />
+                </StackPanel>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="TreeViewItem /template/ ToggleButton#PART_ExpandCollapseChevron:not(:checked) Path#Chevron">
+        <Setter Property="RenderTransform" Value="rotate(-90deg)" />
+    </Style>
+    <Style Selector="TreeViewItem:empty /template/ ToggleButton#PART_ExpandCollapseChevron">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="TreeViewItem /template/ ContentPresenter#PART_HeaderPresenter">
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Padding" Value="2,0" />
+        <Setter Property="MinHeight" Value="22" />
+    </Style>
+    <!-- наведение и выбор в дереве — теми же цветами, что и в результатах поиска -->
+    <Style Selector="TreeViewItem:pointerover /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="{DynamicResource HoverBrush}" />
+    </Style>
+    <Style Selector="TreeViewItem:selected /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
+    </Style>
+
+    <!-- результаты поиска: те же цвета, что в дереве -->
+    <Style Selector="ListBoxItem">
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="0" />
+    </Style>
+    <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource HoverBrush}" />
+    </Style>
+    <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter, ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
+    </Style>
+    <Style Selector="ListBox Border.row:pointerover">
+        <Setter Property="Background" Value="{DynamicResource HoverBrush}" />
+    </Style>
+    <Style Selector="Border.row.dropInto">
+        <Setter Property="Background" Value="{DynamicResource DropIntoBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <!-- таблица файлов: рамка фокуса и курсорная рамка ячейки скрыты (в тёмной теме они белые;
+        сами цвета выделения строки переопределены в ThemeDictionaries окна, в MainWindowModern.axaml) -->
+    <Style Selector="DataGridCell:focus /template/ Grid#FocusVisual">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="DataGridCell:current /template/ Rectangle#CurrencyVisual">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+
+    <!-- ===== Разделитель между панелями ===== -->
+    <Style Selector="GridSplitter.vsplit">
+        <Setter Property="Width" Value="5" />
+        <Setter Property="Background" Value="{DynamicResource LineBrush}" />
+    </Style>
+    <Style Selector="GridSplitter.vsplit:pointerover">
+        <Setter Property="Background" Value="{DynamicResource HoverBrush}" />
+    </Style>
+
+    <!-- ===== Кнопки рельса и другие иконки-режимы ===== -->
+    <Style Selector="Button.mode, ToggleButton.mode">
+        <Setter Property="Width" Value="36" />
+        <Setter Property="Height" Value="34" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="ToolTip.ShowDelay" Value="500" />
+    </Style>
+    <Style Selector="Button.mode:pointerover /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.mode:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource HoverBrush}" />
+    </Style>
+    <Style Selector="Button.mode:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource PressedBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.mode:checked /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.mode:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.mode:checked:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource RailCheckedBrush}" />
+    </Style>
+    <Style Selector="Button.mode PathIcon, ToggleButton.mode PathIcon">
+        <Setter Property="Width" Value="18" />
+        <Setter Property="Height" Value="18" />
+        <Setter Property="Foreground" Value="{DynamicResource NeutralIconBrush}" />
+    </Style>
+    <!-- выбранный раздел рельса: иконка подсвечивается акцентом -->
+    <Style Selector="ToggleButton.mode:checked PathIcon">
+        <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+    </Style>
+</Styles>

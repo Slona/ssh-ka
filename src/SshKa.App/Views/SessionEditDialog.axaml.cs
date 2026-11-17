@@ -15,6 +15,7 @@ public partial class SessionEditDialog : Window
 
     public SessionEditDialog()
     {
+        UiTheme.Apply(this);
         InitializeComponent();
         Loc.Apply(this);
         _loading = false;

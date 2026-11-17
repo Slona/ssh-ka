@@ -49,6 +49,10 @@ public sealed record EditorSetupPlan(
 /// <summary>Серверная подсветка: настраивает сами редакторы, поэтому она точнее клиентской (понимает язык и многострочные конструкции).</summary>
 public static class EditorSetup
 {
+    /// <summary>Оборачивает POSIX-скрипт в /bin/sh -c. Команда исполняется логин-шеллом сервера,
+    /// и он может быть fish или csh, не понимающим sh-синтаксис; /bin/sh есть везде на Linux.</summary>
+    private static string RunSh(string script) => "/bin/sh -c '" + script.Replace("'", "'\\''") + "'";
+
     /// <param name="home">Каталог пользователя в виде, пригодном для оболочки; "$HOME" в работе, другой — для проверок.</param>
     public static Task<EditorSetupPlan> InspectAsync(SshClient client, string home = "$HOME") => Task.Run(() =>
     {
@@ -63,7 +67,7 @@ public static class EditorSetup
             echo "home=$H"; echo "vim=$v"; echo "vimsyntax=$vs"; echo "vimalready=$va"
             echo "nano=$n"; echo "nanodir=$nd"; echo "nanoalready=$na"
             """;
-        using var cmd = client.CreateCommand(script);
+        using var cmd = client.CreateCommand(RunSh(script));
         var values = cmd.Execute().Replace("\r", "").Split('\n', StringSplitOptions.RemoveEmptyEntries)
             .Select(l => l.Split('=', 2)).Where(p => p.Length == 2).ToDictionary(p => p[0], p => p[1]);
 
@@ -98,7 +102,7 @@ public static class EditorSetup
     /// <summary>Дописывает нужные строки в ~/.vimrc и ~/.nanorc. Делается только то, что в плане отмечено как необходимое.</summary>
     public static Task ApplyAsync(SshClient client, EditorSetupPlan plan, string home = "$HOME") => Task.Run(() =>
     {
-        using var cmd = client.CreateCommand(BuildApplyScript(plan, home));
+        using var cmd = client.CreateCommand(RunSh(BuildApplyScript(plan, home)));
         cmd.Execute();
         if (cmd.ExitStatus != 0)
             throw new IOException(string.IsNullOrWhiteSpace(cmd.Error) ? Loc.F("Команда завершилась с кодом {0}", cmd.ExitStatus) : cmd.Error.Trim());

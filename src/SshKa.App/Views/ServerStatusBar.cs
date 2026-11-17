@@ -21,6 +21,10 @@ public sealed class ServerStatusBar : Border
 
     private static readonly FontFamily Mono = new("Consolas, Cascadia Mono, DejaVu Sans Mono, monospace");
 
+    /// <summary>Нейтральные цвета зависят от варианта интерфейса: у Modern они светлее.</summary>
+    private static IBrush UiBrush(string light, string dark) =>
+        new SolidColorBrush(Color.Parse(App.ModernUi ? dark : light));
+
     private readonly TextBlock _host = Label();
     private readonly TextBlock _cpu = Label();
     private readonly Polyline _graph = new() { Stroke = Brushes.LimeGreen, StrokeThickness = 1.2 };
@@ -53,16 +57,16 @@ public sealed class ServerStatusBar : Border
             Spacing = 10,
             Children =
             {
-                Field("IconMonitor", "#4F5F70", _hostTip, _host),
+                Field("IconMonitor", UiBrush("#4F5F70", "#8A94A6"), _hostTip, _host),
                 Separator(),
-                Field("IconChip", "#2E8B3E", _cpuTip, _cpu, graphBox),
+                Field("IconChip", UiBrush("#2E8B3E", "#3DA55B"), _cpuTip, _cpu, graphBox),
                 Separator(),
-                Field("IconRam", "#2F6DB5", _memTip, _mem),
+                Field("IconRam", UiBrush("#2F6DB5", "#5D9BE0"), _memTip, _mem),
                 Separator(),
-                Field("IconArrowUp", "#2E8B3E", _txTip, _tx),
-                Field("IconArrowDown", "#2F6DB5", _rxTip, _rx),
+                Field("IconArrowUp", UiBrush("#2E8B3E", "#3DA55B"), _txTip, _tx),
+                Field("IconArrowDown", UiBrush("#2F6DB5", "#5D9BE0"), _rxTip, _rx),
                 Separator(),
-                Field("IconClock", "#6B6B6B", _uptimeTip, _uptime),
+                Field("IconClock", UiBrush("#6B6B6B", "#98A0AB"), _uptimeTip, _uptime),
                 Separator(),
                 WithTip(_disks, _diskTip),
             },
@@ -89,8 +93,8 @@ public sealed class ServerStatusBar : Border
         UpdateTips(s);
     }
 
-    private static readonly IBrush DiskOkBrush = new SolidColorBrush(Color.Parse("#6B6B6B"));
-    private static readonly IBrush DiskFullBrush = new SolidColorBrush(Color.Parse("#CD5C5C"));
+    private static readonly IBrush DiskOkBrush = UiBrush("#6B6B6B", "#98A0AB");
+    private static readonly IBrush DiskFullBrush = UiBrush("#CD5C5C", "#E06666");
 
     /// <summary>Строки дисков обновляем на месте: пересоздание панели каждые 2 секунды — лишний мусор и сброс наведения.</summary>
     private void UpdateDisks(IReadOnlyList<DiskUsage> disks)
@@ -106,13 +110,14 @@ public sealed class ServerStatusBar : Border
                 {
                     Orientation = Orientation.Horizontal,
                     Spacing = 4,
-                    Children = { Icon("IconDisk", "#6B6B6B"), Label() },
+                    Children = { Icon("IconDisk", DiskOkBrush), Label() },
                 });
 
             var row = (StackPanel)rows[i];
             var text = (TextBlock)row.Children[1];
             text.Text = $"{d.Mount}: {d.UsedPercent}%";
-            text.Foreground = bad ? Brushes.IndianRed : null;
+            // локальный null перекрывает наследуемый цвет, и текст перестаёт рисоваться — задаём обычную кисть явно
+            text.Foreground = bad ? DiskFullBrush : DiskOkBrush;
             ((PathIcon)row.Children[0]).Foreground = bad ? DiskFullBrush : DiskOkBrush;
         }
     }
@@ -200,10 +205,13 @@ public sealed class ServerStatusBar : Border
     };
 
     /// <summary>Поле панели: значок, значение и подсказка по наведению.</summary>
-    private static Control Field(string icon, string color, TextBlock tip, params Control[] content)
+    private static Control Field(string icon, string color, TextBlock tip, params Control[] content) =>
+        Field(icon, new SolidColorBrush(Color.Parse(color)), tip, content);
+
+    private static Control Field(string icon, IBrush brush, TextBlock tip, params Control[] content)
     {
         var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Background = Brushes.Transparent };
-        row.Children.Add(Icon(icon, color));
+        row.Children.Add(Icon(icon, brush));
         row.Children.AddRange(content);
         return WithTip(row, tip);
     }
@@ -221,12 +229,12 @@ public sealed class ServerStatusBar : Border
         return target;
     }
 
-    private static PathIcon Icon(string key, string color) => new()
+    private static PathIcon Icon(string key, IBrush brush) => new()
     {
         Data = IconResources.Get(key),
         Width = 13,
         Height = 13,
-        Foreground = new SolidColorBrush(Color.Parse(color)),
+        Foreground = brush,
         VerticalAlignment = VerticalAlignment.Center,
     };
 
@@ -245,7 +253,7 @@ public sealed class ServerStatusBar : Border
 
     private static Border Separator() => new()
     {
-        Width = 1, Height = 14, Background = new SolidColorBrush(Color.Parse("#C6C6C6")), VerticalAlignment = VerticalAlignment.Center,
+        Width = 1, Height = 14, Background = UiBrush("#C6C6C6", "#3A404B"), VerticalAlignment = VerticalAlignment.Center,
     };
 
     private static string Gb(long bytes) => $"{bytes / 1073741824.0:0.00} GB";

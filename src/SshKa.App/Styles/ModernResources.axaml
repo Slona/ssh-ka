@@ -1,0 +1,48 @@
+﻿<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Тёмная палитра Modern (в духе Termius). Подключается на уровне приложения (UiTheme.ApplyApplication),
+         поэтому перекрывает светлые значения App.axaml для всего: окна, диалоги, меню, таблицы. -->
+
+    <Color x:Key="AppBackgroundColor">#22262E</Color>
+    <Color x:Key="PanelBackgroundColor">#1E222A</Color>
+    <Color x:Key="LineColor">#14171D</Color>
+    <SolidColorBrush x:Key="AppBackground" Color="{StaticResource AppBackgroundColor}" />
+    <SolidColorBrush x:Key="PanelBackground" Color="{StaticResource PanelBackgroundColor}" />
+    <SolidColorBrush x:Key="LineBrush" Color="{StaticResource LineColor}" />
+
+    <SolidColorBrush x:Key="ConnectedBrush" Color="#223528" />
+    <SolidColorBrush x:Key="StoppedBrush" Color="#3A2525" />
+    <SolidColorBrush x:Key="AccentBrush" Color="#33B5FF" />
+
+    <!-- общие ключи обоих вариантов, тёмные значения -->
+    <SolidColorBrush x:Key="HoverBrush" Color="#2A303B" />
+    <SolidColorBrush x:Key="PressedBrush" Color="#39414E" />
+    <SolidColorBrush x:Key="NeutralIconBrush" Color="#A9B1BD" />
+    <SolidColorBrush x:Key="MonitorIconBrush" Color="#8A94A6" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#98A0AB" />
+    <SolidColorBrush x:Key="TabTextBrush" Color="#969CA6" />
+    <SolidColorBrush x:Key="TabActiveBrush" Color="#E9EDF2" />
+
+    <!-- только для Modern -->
+    <SolidColorBrush x:Key="RailBackground" Color="#16181D" />
+    <SolidColorBrush x:Key="TabStripBackground" Color="#1B1F26" />
+    <SolidColorBrush x:Key="SelectionBrush" Color="#2C3A4C" />
+    <SolidColorBrush x:Key="RailCheckedBrush" Color="#243140" />
+    <SolidColorBrush x:Key="DropIntoBrush" Color="#203953" />
+
+    <!-- таблица файлов: выделение строки как в дереве, без белой рамки фокуса.
+         DataGrid берёт эти кисти из ThemeDictionaries своей темы, поэтому их продублированы
+         значениями здесь, на app-уровне (перекрытие через окно не пробилось). -->
+    <SolidColorBrush x:Key="DataGridRowSelectedBackgroundBrush" Color="#2C3A4C" />
+    <SolidColorBrush x:Key="DataGridRowSelectedHoveredBackgroundBrush" Color="#32425A" />
+    <SolidColorBrush x:Key="DataGridRowSelectedUnfocusedBackgroundBrush" Color="#2C3A4C" />
+    <SolidColorBrush x:Key="DataGridRowSelectedHoveredUnfocusedBackgroundBrush" Color="#32425A" />
+    <x:Double x:Key="DataGridRowSelectedBackgroundOpacity">1</x:Double>
+    <x:Double x:Key="DataGridRowSelectedHoveredBackgroundOpacity">1</x:Double>
+    <x:Double x:Key="DataGridRowSelectedUnfocusedBackgroundOpacity">1</x:Double>
+    <x:Double x:Key="DataGridRowSelectedHoveredUnfocusedBackgroundOpacity">1</x:Double>
+    <SolidColorBrush x:Key="DataGridRowHoveredBackgroundColor" Color="#2A303B" />
+    <SolidColorBrush x:Key="DataGridCellFocusVisualPrimaryBrush" Color="#00FFFFFF" />
+    <SolidColorBrush x:Key="DataGridCellFocusVisualSecondaryBrush" Color="#00FFFFFF" />
+    <SolidColorBrush x:Key="DataGridCurrencyVisualPrimaryBrush" Color="#00FFFFFF" />
+</ResourceDictionary>

@@ -9,14 +9,19 @@ namespace SshKa.App.Views;
 /// <summary>Небольшие модальные диалоги, собранные в коде.</summary>
 public static class Dialogs
 {
-    private static Window Make(string title) => new()
+    private static Window Make(string title)
     {
-        Title = title,
-        SizeToContent = SizeToContent.WidthAndHeight,
-        WindowStartupLocation = WindowStartupLocation.CenterOwner,
-        CanResize = false,
-        Content = new StackPanel { Margin = new Avalonia.Thickness(16), Spacing = 10, Children = { } },
-    };
+        var win = new Window
+        {
+            Title = title,
+            SizeToContent = SizeToContent.WidthAndHeight,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            CanResize = false,
+            Content = new StackPanel { Margin = new Avalonia.Thickness(16), Spacing = 10, Children = { } },
+        };
+        UiTheme.Apply(win);
+        return win;
+    }
 
     private static StackPanel Buttons(out Button ok, out Button cancel, string okText = "OK")
     {
@@ -306,15 +311,12 @@ public static class Dialogs
         tree.DoubleTapped += (_, _) => { if (ok.IsEnabled) ok.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)); };
 
         var win = Make("Перемещение");
+        var treeBorder = new Border { BorderThickness = new Avalonia.Thickness(1), Child = tree };
+        treeBorder.Bind(Border.BorderBrushProperty, treeBorder.GetResourceObservable("LineBrush")); // и светлый, и тёмный вариант
         ((StackPanel)win.Content!).Children.AddRange(new Control[]
         {
             new TextBlock { Text = Loc.F("Куда переместить «{0}»?", item.Name) },
-            new Border
-            {
-                BorderBrush = Avalonia.Media.Brushes.LightGray,
-                BorderThickness = new Avalonia.Thickness(1),
-                Child = tree,
-            },
+            treeBorder,
             buttons,
         });
         ok.Click += (_, _) => win.Close((true, (tree.SelectedItem as TreeViewItem)?.Tag is FolderNode f ? f.Ref : null));

@@ -14,6 +14,7 @@ public partial class PermissionsDialog : Window
 
     public PermissionsDialog()
     {
+        UiTheme.Apply(this);
         InitializeComponent();
         Loc.Apply(this);
         _boxes = new[]
