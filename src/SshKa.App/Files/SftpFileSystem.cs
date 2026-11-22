@@ -95,11 +95,18 @@ public sealed class SftpFileSystem : IRemoteFileSystem
         var part = local + ".sshka-part";
         try
         {
-            using var stream = File.Create(part);
+            // Create и Move с повторами: файл на миг может держать антивирус или просмотрщик,
+            // в котором открыт прошлый скачанный экземпляр
+            using var stream = FileIo.Create(part);
             await _client.DownloadFileAsync(remotePath, stream,
                 new DirectProgress<DownloadFileProgressReport, TransferProgress>(
                     r => new TransferProgress(name, (long)r.TotalBytesDownloaded, total), progress), ct);
-            File.Move(part, local, overwrite: true);
+            FileIo.MoveOverwriting(part, local);
+        }
+        catch (Exception ex) when (FileIo.IsLocked(ex))
+        {
+            try { File.Delete(part); } catch { }
+            throw FileIo.LockedError(name, ex);
         }
         catch
         {
@@ -133,7 +140,7 @@ public sealed class SftpFileSystem : IRemoteFileSystem
         catch { existed = true; } // узнать не вышло — безопаснее считать файл чужим и не трогать при отмене
 
         var total = new FileInfo(localPath).Length;
-        using var stream = File.OpenRead(localPath);
+        using var stream = FileIo.OpenRead(localPath); // повтор: файл мог быть открыт другой программой
         try
         {
             await _client.UploadFileAsync(stream, remote, true,
@@ -145,6 +152,10 @@ public sealed class SftpFileSystem : IRemoteFileSystem
             // недогруженный новый файл на сервере не оставляем
             if (!existed) try { _client.DeleteFile(remote); } catch { }
             throw;
+        }
+        catch (Exception ex) when (FileIo.IsLocked(ex))
+        {
+            throw FileIo.LockedError(name, ex);
         }
     }
 

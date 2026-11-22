@@ -85,12 +85,18 @@ public sealed partial class ScpFileSystem : IRemoteFileSystem
             }
             else
             {
-                // качаем во временный файл: прежний файл цел до конца передачи, обрыв не оставляет недокачанный
+                // качаем во временный файл: прежний файл цел до конца передачи, обрыв не оставляет недокачанный;
+                // повтор на случай, если файл на миг держит антивирус или просмотрщик прошлой копии
                 var part = local + ".sshka-part";
                 try
                 {
-                    _scp.Download(entry.FullPath, new FileInfo(part));
-                    File.Move(part, local, overwrite: true);
+                    FileIo.Retry(() => _scp.Download(entry.FullPath, new FileInfo(part)));
+                    FileIo.MoveOverwriting(part, local);
+                }
+                catch (Exception ex) when (FileIo.IsLocked(ex))
+                {
+                    try { File.Delete(part); } catch { }
+                    throw FileIo.LockedError(entry.Name, ex);
                 }
                 catch
                 {

@@ -148,6 +148,7 @@ internal static class Strings
         ["Выберите один элемент"] = "Select one item",
         ["Куда сохранить"] = "Save to",
         ["Скачивание отменено"] = "Download cancelled",
+        ["Файл «{0}» занят другим приложением. Закройте его и повторите передачу."] = "The file “{0}” is in use by another application. Close it and retry the transfer.",
         ["Скачивание"] = "Download",
         ["Файлы для загрузки"] = "Files to upload",
         ["Папка для загрузки"] = "Folder to upload",
