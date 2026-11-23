@@ -36,7 +36,8 @@ public sealed record ForegroundEditor(int Pid, string? File);
 /// Единственный опросщик сервера для открытой SSH-сессии. Раз в две секунды выполняет один скрипт
 /// по одному exec-каналу: текущий каталог шелла, редактор на переднем плане и — если включена панель
 /// состояния — показатели /proc и df. Раньше этими данными занимались три отдельных цикла, открывавшие
-/// до трёх каналов в секунду. На время файловых передач опрос ставится на паузу.
+/// до трёх каналов в секунду. Во время файловых передач опрос не останавливается, а просто реже:
+/// панель состояния должна показывать реальную загрузку сети, когда она максимальная.
 /// </summary>
 public sealed partial class SessionPoller : IDisposable
 {
@@ -44,6 +45,7 @@ public sealed partial class SessionPoller : IDisposable
     private const int MaxStatsFailures = 5;
     private const string Marker = "@@@";
     private static readonly TimeSpan Interval = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan TransferInterval = TimeSpan.FromSeconds(6);
 
     private static readonly HashSet<string> Editors = new(StringComparer.Ordinal)
     {
@@ -65,7 +67,7 @@ public sealed partial class SessionPoller : IDisposable
     private string? _lastCwd;
     private int _findAttempts;
     private volatile bool _includeStats;
-    private volatile bool _paused;
+    private volatile bool _transferActive;
 
     private Snapshot? _prev;
     private long _prevTicks;
@@ -98,8 +100,9 @@ public sealed partial class SessionPoller : IDisposable
     /// <summary>Показатели сервера нужны (панель состояния включена) или нет.</summary>
     public void SetStatsEnabled(bool on) => _includeStats = on;
 
-    /// <summary>Пауза на время файловых передач: не нагружаем линию и сервер параллельно с передачей.</summary>
-    public void SetPaused(bool on) => _paused = on;
+    /// <summary>Идёт файловая передача: опрос реже (TransferInterval), чтобы не нагружать линию,
+    /// но панель состояния продолжает показывать реальные цифры.</summary>
+    public void SetTransfersActive(bool on) => _transferActive = on;
 
     /// <summary>Просит процесс перерисоваться (SIGWINCH), чтобы редактор заново вывел экран уже с подсветкой.</summary>
     public Task RequestRedrawAsync(int pid) => Task.Run(() =>
@@ -141,26 +144,23 @@ public sealed partial class SessionPoller : IDisposable
         {
             while (!ct.IsCancellationRequested && _conn.Client.IsConnected)
             {
-                if (!_paused)
+                try
                 {
-                    try
+                    if (_pts is null)
                     {
-                        if (_pts is null)
-                        {
-                            _pts = FindPts();
-                            if (_pts is null && ++_findAttempts >= MaxFindAttempts)
-                                return; // не Linux или нет /dev/pts
-                        }
+                        _pts = FindPts();
+                        if (_pts is null && ++_findAttempts >= MaxFindAttempts)
+                            return; // не Linux или нет /dev/pts
+                    }
 
-                        if (_pts is not null) Poll(_pts, ref statsFailures);
-                        else if (_includeStats) PollStatsOnly(ref statsFailures);
-                    }
-                    catch
-                    {
-                        // команда не выполнилась (соединение закрывается и т. п.) — пробуем в следующий раз
-                    }
+                    if (_pts is not null) Poll(_pts, ref statsFailures);
+                    else if (_includeStats) PollStatsOnly(ref statsFailures);
                 }
-                await _wake.WaitAsync(Interval, ct); // просыпаемся и по Poke — для мгновенного опроса
+                catch
+                {
+                    // команда не выполнилась (соединение закрывается и т. п.) — пробуем в следующий раз
+                }
+                await _wake.WaitAsync(_transferActive ? TransferInterval : Interval, ct); // просыпаемся и по Poke
             }
         }
         catch (OperationCanceledException)

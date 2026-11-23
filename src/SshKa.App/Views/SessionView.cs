@@ -123,7 +123,7 @@ public sealed class SessionView : Grid
             if (ReferenceEquals(_poller, poller)) _status.IsVisible = false;
         });
         Files.Attach(conn, poller);
-        Files.BusyChanged += busy => poller.SetPaused(busy); // передачи файлов не должны мешаться с опросами
+        Files.BusyChanged += busy => poller.SetTransfersActive(busy); // передачи: опрос реже, но панель живёт
         if (_monitoring) poller.SetStatsEnabled(true);
         poller.Start();
     }
