@@ -100,11 +100,15 @@ public sealed class SftpFileSystem : IRemoteFileSystem
         try
         {
             // Create и Move с повторами: файл на миг может держать антивирус или просмотрщик,
-            // в котором открыт прошлый скачанный экземпляр
-            using var stream = FileIo.Create(part);
-            await _client.DownloadFileAsync(remotePath, stream,
-                new DirectProgress<DownloadFileProgressReport, TransferProgress>(
-                    r => new TransferProgress(name, (long)r.TotalBytesDownloaded, total), progress), ct);
+            // в котором открыт прошлый скачанный экземпляр.
+            // Поток закрываем ДО перемещения: File.Create открывает файл без шаринга, и пока он открыт,
+            // переименование даёт sharing violation («занят другим процессом» — процесс тут мы сами)
+            using (var stream = FileIo.Create(part))
+            {
+                await _client.DownloadFileAsync(remotePath, stream,
+                    new DirectProgress<DownloadFileProgressReport, TransferProgress>(
+                        r => new TransferProgress(name, (long)r.TotalBytesDownloaded, total), progress), ct);
+            }
             FileIo.MoveOverwriting(part, local);
         }
         catch (Exception ex) when (FileIo.IsLocked(ex))
