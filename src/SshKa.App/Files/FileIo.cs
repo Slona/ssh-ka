@@ -7,11 +7,16 @@ namespace SshKa.App.Files;
 public static class FileIo
 {
     /// <summary>Паузы между попытками; последняя попытка выполняется без последующей паузы.</summary>
-    private static readonly int[] RetryWaitsMs = [0, 300, 1000];
+    private static readonly int[] RetryWaitsMs = [0, 300, 1000, 2000];
 
-    /// <summary>Файл держит другой процесс (sharing violation) или доступ запрещён.</summary>
-    public static bool IsLocked(Exception ex) =>
-        ex is IOException { HResult: 32 or 33 } || ex is UnauthorizedAccessException;
+    /// <summary>Файл держит другой процесс (sharing/lock violation) или доступ запрещён.
+    /// В младшем слове HRESULT лежит код Win32: 32 — sharing violation, 33 — lock violation;
+    /// .NET записывает туда полный HRESULT (0x80070020/21), поэтому сравниваем младшее слово.</summary>
+    public static bool IsLocked(Exception ex)
+    {
+        if (ex is UnauthorizedAccessException) return true;
+        return ex is IOException && (ex.HResult & 0xFFFF) is 32 or 33;
+    }
 
     /// <summary>Выполняет операцию, повторяя при блокировке файла; если блокировка пережила все
     /// попытки, исключение выходит наружу (вызывающий код переводит его в понятное сообщение).</summary>
