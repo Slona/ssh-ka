@@ -106,7 +106,18 @@ public sealed class SftpFileSystem : IRemoteFileSystem
         catch (Exception ex) when (FileIo.IsLocked(ex))
         {
             try { File.Delete(part); } catch { }
-            throw FileIo.LockedError(name, ex);
+            // цель держит другая программа (просмотрщик, смонтированный образ): сохраняем под соседним
+            // именем — как браузеры; не вышло и там — понятная ошибка
+            try
+            {
+                var alternate = FileIo.Alternate(local);
+                FileIo.MoveOverwriting(part, alternate);
+                progress.Report(new TransferProgress(Path.GetFileName(alternate), total, total));
+            }
+            catch
+            {
+                throw FileIo.LockedError(name, ex);
+            }
         }
         catch
         {

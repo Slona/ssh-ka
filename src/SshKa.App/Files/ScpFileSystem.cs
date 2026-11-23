@@ -96,7 +96,16 @@ public sealed partial class ScpFileSystem : IRemoteFileSystem
                 catch (Exception ex) when (FileIo.IsLocked(ex))
                 {
                     try { File.Delete(part); } catch { }
-                    throw FileIo.LockedError(entry.Name, ex);
+                    // цель держит другая программа: сохраняем под соседним именем, как браузеры
+                    try
+                    {
+                        var alternate = FileIo.Alternate(local);
+                        FileIo.Retry(() => _scp.Download(entry.FullPath, new FileInfo(alternate)));
+                    }
+                    catch
+                    {
+                        throw FileIo.LockedError(entry.Name, ex);
+                    }
                 }
                 catch
                 {

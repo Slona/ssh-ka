@@ -52,4 +52,18 @@ public static class FileIo
     /// <summary>Понятное сообщение вместо «The process cannot access the file…».</summary>
     public static IOException LockedError(string name, Exception inner) =>
         new(Loc.F("Файл «{0}» занят другим приложением. Закройте его и повторите передачу.", name), inner);
+
+    /// <summary>Соседнее свободное имя «файл (1).ext», «файл (2).ext»… — для случая,
+    /// когда цель держит другая программа, а скачивать всё же нужно.</summary>
+    public static string Alternate(string path)
+    {
+        var dir = Path.GetDirectoryName(path)!;
+        var name = Path.GetFileNameWithoutExtension(path);
+        var ext = Path.GetExtension(path);
+        for (var i = 1; ; i++)
+        {
+            var candidate = Path.Combine(dir, $"{name} ({i}){ext}");
+            if (!File.Exists(candidate) && !Directory.Exists(candidate)) return candidate;
+        }
+    }
 }
