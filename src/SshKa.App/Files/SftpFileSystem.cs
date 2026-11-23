@@ -91,8 +91,12 @@ public sealed class SftpFileSystem : IRemoteFileSystem
 
         var total = size > 0 ? size : _client.GetAttributes(remotePath).Size;
         // качаем во временный файл и переименовываем по завершении: прежний файл (режим «Заменить»)
-        // цел до последнего байта, а обрыв не оставляет недокачанный файл под целевым именем
-        var part = local + ".sshka-part";
+        // цел до последнего байта, а обрыв не оставляет недокачанный файл под целевым именем.
+        // Имя уникально для передачи: параллельные скачивания одного файла не воюют за part,
+        // а осиротевший part прошлой попытки (обрыв, убитое приложение) не заблокирует новую
+        var part = local + ".sshka-part-" + Guid.NewGuid().ToString("N")[..8];
+        foreach (var stale in Directory.GetFiles(localDir, Path.GetFileName(local) + ".sshka-part*"))
+            try { File.Delete(stale); } catch { } // чужой живой передачей занятый файл переживёт попытку
         try
         {
             // Create и Move с повторами: файл на миг может держать антивирус или просмотрщик,

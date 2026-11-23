@@ -86,8 +86,11 @@ public sealed partial class ScpFileSystem : IRemoteFileSystem
             else
             {
                 // качаем во временный файл: прежний файл цел до конца передачи, обрыв не оставляет недокачанный;
+                // имя уникально для передачи (см. SftpFileSystem) — параллели и осиротевшие part не мешают;
                 // повтор на случай, если файл на миг держит антивирус или просмотрщик прошлой копии
-                var part = local + ".sshka-part";
+                var part = local + ".sshka-part-" + Guid.NewGuid().ToString("N")[..8];
+                foreach (var stale in Directory.GetFiles(localDir, Path.GetFileName(local) + ".sshka-part*"))
+                    try { File.Delete(stale); } catch { }
                 try
                 {
                     FileIo.Retry(() => _scp.Download(entry.FullPath, new FileInfo(part)));
